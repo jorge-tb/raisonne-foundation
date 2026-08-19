@@ -7,7 +7,6 @@ import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProo
 import {FundTreasury} from "./FundTreasury.sol";
 
 contract ArtRegistry is ERC721URIStorage, Ownable {
-
     error ZeroRoot();
     error GalleryAlreadyAdded(bytes32 root);
     error InvalidGallery(bytes32 root);
@@ -21,12 +20,13 @@ contract ArtRegistry is ERC721URIStorage, Ownable {
     address private immutable _fundTreasuryProxy;
     mapping(bytes32 galleryRoot => bool) private _galleryRoots;
 
-    constructor(address timelockController, address fundTreasuryProxy) 
+    constructor(address timelockController, address fundTreasuryProxy)
         ERC721("ArtRegistry", "ART")
-        Ownable(timelockController) {
-            require(fundTreasuryProxy != address(0), InvalidFundTreasuryProxy(fundTreasuryProxy));
-            _fundTreasuryProxy = fundTreasuryProxy;
-        }
+        Ownable(timelockController)
+    {
+        require(fundTreasuryProxy != address(0), InvalidFundTreasuryProxy(fundTreasuryProxy));
+        _fundTreasuryProxy = fundTreasuryProxy;
+    }
 
     function addGallery(bytes32 root) external onlyOwner {
         require(root != bytes32(0), ZeroRoot());
@@ -44,8 +44,10 @@ contract ArtRegistry is ERC721URIStorage, Ownable {
         return _galleryRoots[root];
     }
 
-    function mintArtwork(bytes32[] calldata proof, bytes32 root, uint256 tokenId, string calldata cid) external 
-    onlyEnabledGallery(root) {
+    function mintArtwork(bytes32[] calldata proof, bytes32 root, uint256 tokenId, string calldata cid)
+        external
+        onlyEnabledGallery(root)
+    {
         bytes memory encoded = abi.encode(tokenId, cid);
         bytes32 leaf = keccak256(bytes.concat(keccak256(encoded)));
         require(MerkleProof.verifyCalldata(proof, root, leaf), InvalidMerkleProof(leaf));
