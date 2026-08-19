@@ -2,17 +2,19 @@
 pragma solidity ^0.8.13;
 
 import {Script} from "forge-std/Script.sol";
-import {Counter} from "../src/Counter.sol";
+import {ArtRegistry} from "../src/ArtRegistry.sol";
 
 contract CounterScript is Script {
-    Counter public counter;
+    ArtRegistry public artRegistry;
 
     function setUp() public {}
 
     function run() public {
         vm.startBroadcast();
 
-        counter = new Counter();
+        address timelockController = address(1);
+        address fundTreasuryProxy = address(2);
+        artRegistry = new ArtRegistry(timelockController, fundTreasuryProxy);
 
         vm.stopBroadcast();
     }
