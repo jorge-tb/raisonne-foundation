@@ -30,10 +30,7 @@ contract ArtRegistryTest is Test {
     function test_RevertWhen_InvalidFundTreasuryProxy() public {
         address invalidFundTreasuryProxy = address(0);
         vm.expectRevert(abi.encodeWithSelector(ArtRegistry.InvalidFundTreasuryProxy.selector, address(0)));
-        artRegistry = new ArtRegistry(
-            timelockController,
-            invalidFundTreasuryProxy
-        );
+        artRegistry = new ArtRegistry(timelockController, invalidFundTreasuryProxy);
     }
 
     function testFuzz_AddGallery_FromTimelock(bytes32 galleryRoot) public {
@@ -63,7 +60,7 @@ contract ArtRegistryTest is Test {
         bytes32 galleryRoot = keccak256("gallery-001");
         vm.prank(timelockController);
         artRegistry.addGallery(galleryRoot);
-        
+
         vm.expectRevert(abi.encodeWithSelector(ArtRegistry.GalleryAlreadyAdded.selector, galleryRoot));
         vm.prank(timelockController);
         artRegistry.addGallery(galleryRoot);
@@ -98,7 +95,13 @@ contract ArtRegistryTest is Test {
     function test_MintArtwork_ValidProof() public {
         // Construct merkle tree
         Merkle merkle = new Merkle();
-        Artwork[5] memory artworks = [Artwork(1, "CID-001"), Artwork(2, "CID-002"), Artwork(3, "CID-003"), Artwork(4, "CID-004"), Artwork(5, "CID-005")];
+        Artwork[5] memory artworks = [
+            Artwork(1, "CID-001"),
+            Artwork(2, "CID-002"),
+            Artwork(3, "CID-003"),
+            Artwork(4, "CID-004"),
+            Artwork(5, "CID-005")
+        ];
         bytes32[] memory data = _hashArtworks(artworks);
         // Compute gallery root
         bytes32 root = merkle.getRoot(data);
@@ -122,7 +125,13 @@ contract ArtRegistryTest is Test {
 
     function test_RevertWhen_MintArtworkMetadataTampered() public {
         Merkle merkle = new Merkle();
-        Artwork[5] memory artworks = [Artwork(1, "CID-001"), Artwork(2, "CID-002"), Artwork(3, "CID-003"), Artwork(4, "CID-004"), Artwork(5, "CID-005")];
+        Artwork[5] memory artworks = [
+            Artwork(1, "CID-001"),
+            Artwork(2, "CID-002"),
+            Artwork(3, "CID-003"),
+            Artwork(4, "CID-004"),
+            Artwork(5, "CID-005")
+        ];
         bytes32[] memory data = _hashArtworks(artworks);
         bytes32 root = merkle.getRoot(data);
 
@@ -139,7 +148,13 @@ contract ArtRegistryTest is Test {
 
     function test_RevertWhen_MintArtworkAndTokenAlreadyMinted() public {
         Merkle merkle = new Merkle();
-        Artwork[5] memory artworks = [Artwork(1, "CID-001"), Artwork(2, "CID-002"), Artwork(3, "CID-003"), Artwork(4, "CID-004"), Artwork(5, "CID-005")];
+        Artwork[5] memory artworks = [
+            Artwork(1, "CID-001"),
+            Artwork(2, "CID-002"),
+            Artwork(3, "CID-003"),
+            Artwork(4, "CID-004"),
+            Artwork(5, "CID-005")
+        ];
         bytes32[] memory data = _hashArtworks(artworks);
         bytes32 root = merkle.getRoot(data);
 
@@ -155,7 +170,13 @@ contract ArtRegistryTest is Test {
 
     function test_RevertWhen_MintArtworkBelongingToDisabledGallery() public {
         Merkle merkle = new Merkle();
-        Artwork[5] memory artworks = [Artwork(1, "CID-001"), Artwork(2, "CID-002"), Artwork(3, "CID-003"), Artwork(4, "CID-004"), Artwork(5, "CID-005")];
+        Artwork[5] memory artworks = [
+            Artwork(1, "CID-001"),
+            Artwork(2, "CID-002"),
+            Artwork(3, "CID-003"),
+            Artwork(4, "CID-004"),
+            Artwork(5, "CID-005")
+        ];
         bytes32[] memory data = _hashArtworks(artworks);
         bytes32 root = merkle.getRoot(data);
 
@@ -168,7 +189,9 @@ contract ArtRegistryTest is Test {
         data = new bytes32[](artworks.length);
         for (uint256 i = 0; i < artworks.length;) {
             data[i] = _hashArtwork(artworks[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
         return data;
     }
