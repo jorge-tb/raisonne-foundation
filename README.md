@@ -43,7 +43,7 @@ proposal's calldata before voting.
 | Contract | Role | Status |
 |---|---|---|
 | `ArtRegistry` | ERC-721. Holds approved gallery roots; mints only against a valid proof. | Implemented, 13 tests |
-| `FundShare` | ERC-20 + `ERC20Votes` + `ERC20Permit`. Equity, voting power, and the founding subscription round. | Implemented, 28 tests |
+| `FundShare` | ERC-20 + `ERC20Votes` + `ERC20Permit`. Equity, voting power, and the founding subscription round. | Implemented, 37 tests |
 | `FundGovernor` + `TimelockController` | Proposal lifecycle; executes payloads by low-level `call`. | Planned |
 | `FundTreasury` | UUPS proxy. Holds ETH and the collection; distributes sale proceeds. | Planned |
 
@@ -84,7 +84,7 @@ access control on both gallery functions, gallery lifecycle guards, proof verifi
 `tokenURI` composition, ownership landing on the treasury, and mint failures including
 metadata tampering.
 
-**`FundShare`** — complete, 28 tests. Constructor validation with fuzzed guards on the
+**`FundShare`** — complete, 37 tests. Constructor validation with fuzzed guards on the
 allowlist loop, the three-state subscription machine, both ETH transfer failure paths,
 delegation and checkpoint behaviour, and EIP-712 signature handling for `permit` and
 `delegateBySig`.
