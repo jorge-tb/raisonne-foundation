@@ -10,7 +10,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 contract ArtRegistryTest is Test {
     ArtRegistry artRegistry;
     address timelockController;
-    address fundTreasuryProxy;
+    address fundTreasury;
 
     struct Artwork {
         uint256 tokenId;
@@ -19,18 +19,18 @@ contract ArtRegistryTest is Test {
 
     function setUp() public {
         timelockController = address(1);
-        fundTreasuryProxy = address(2);
-        artRegistry = new ArtRegistry(timelockController, fundTreasuryProxy);
+        fundTreasury = address(2);
+        artRegistry = new ArtRegistry(timelockController, fundTreasury);
     }
 
     function test_Constructor_SetsTimelockAsOwner() public view {
         vm.assertEq(artRegistry.owner(), timelockController);
     }
 
-    function test_RevertWhen_InvalidFundTreasuryProxy() public {
-        address invalidFundTreasuryProxy = address(0);
-        vm.expectRevert(abi.encodeWithSelector(ArtRegistry.InvalidFundTreasuryProxy.selector, address(0)));
-        artRegistry = new ArtRegistry(timelockController, invalidFundTreasuryProxy);
+    function test_RevertWhen_InvalidFundTreasury() public {
+        address invalidfundTreasury = address(0);
+        vm.expectRevert(abi.encodeWithSelector(ArtRegistry.InvalidFundTreasury.selector, address(0)));
+        artRegistry = new ArtRegistry(timelockController, invalidfundTreasury);
     }
 
     function testFuzz_AddGallery_FromTimelock(bytes32 galleryRoot) public {
@@ -120,7 +120,7 @@ contract ArtRegistryTest is Test {
         vm.assertEq(artwork1URI, "ipfs://CID-001");
         // Ensure it belongs to fund treasury
         address owner = artRegistry.ownerOf(artworks[0].tokenId);
-        vm.assertEq(owner, fundTreasuryProxy);
+        vm.assertEq(owner, fundTreasury);
     }
 
     function test_RevertWhen_MintArtworkMetadataTampered() public {
