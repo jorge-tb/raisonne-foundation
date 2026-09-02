@@ -180,9 +180,10 @@ contract FundShareTest is Test {
         assertEq(fundShare.getVotes(subscriber), contribution);
     }
 
-    function test_Transfer_MovesVotingPowerBetweenDelegates() public {
-        (address subscriber1, uint256 contribution1) = _subscribeStakeholder(0);
-        (address subscriber2, uint256 contribution2) = _subscribeStakeholder(1);
+    function test_Transfer_MovesVotingPowerBetweenDelegatesWithRoundCompleted() public {
+        _subscribeAll();
+        (address subscriber1, uint256 contribution1) = (stakeholders[0], contributions[0]);
+        (address subscriber2, uint256 contribution2) = (stakeholders[1], contributions[1]);
 
         vm.prank(subscriber1);
         fundShare.delegate(subscriber1);
@@ -195,6 +196,21 @@ contract FundShareTest is Test {
 
         assertEq(fundShare.getVotes(subscriber1), 0);
         assertEq(fundShare.getVotes(subscriber2), contribution1 + contribution2);
+    }
+
+    function test_RevertWhen_TransferWithRoundNotCompleted() public {
+        (address subscriber1, uint256 contribution1) = _subscribeStakeholder(0);
+        (address subscriber2,) = _subscribeStakeholder(1);
+
+        vm.prank(subscriber1);
+        fundShare.delegate(subscriber1);
+
+        vm.prank(subscriber2);
+        fundShare.delegate(subscriber2);
+
+        vm.expectRevert(abi.encodeWithSelector(FundShare.TransferLockedDuringRound.selector, FundShare.RoundState.OPEN));
+        vm.prank(subscriber1);
+        fundShare.transfer(subscriber2, contribution1);
     }
 
     function test_GetPastVotes_ReturnsZeroBeforeDelegation() public {
