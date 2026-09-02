@@ -23,6 +23,7 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
     error RefundTransferFailed(address stakeholder, address recipient);
     error TreasuryTransferFailed();
     error ZeroAddressRecipient();
+    error TransferLockedDuringRound(RoundState state);
 
     event Subscribed(address indexed stakeholder, uint256 contribution);
     event Refunded(address indexed stakeholder, address indexed recipient, uint256 contribution);
@@ -115,6 +116,12 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
     }
 
     function _update(address from, address to, uint256 value) internal override(ERC20, ERC20Votes) {
+        if (from != address(0) && to != address(0)) {
+            // Note: refund() requires that the subscriber hold shares equal to their contribution,
+            // so allowing transfers would prevent stakeholders from recovering their funds.
+            RoundState state = getRoundState();
+            require(state == RoundState.COMPLETED, TransferLockedDuringRound(state));
+        }
         super._update(from, to, value);
     }
 
