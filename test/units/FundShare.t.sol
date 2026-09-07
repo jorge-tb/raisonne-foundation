@@ -3,7 +3,7 @@ pragma solidity 0.8.36;
 
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
-import {FundShare} from "../src/FundShare.sol";
+import {FundShare} from "../../src/FundShare.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
@@ -403,6 +403,7 @@ contract FundShareTest is Test {
 
         assertEq(address(fundShare).balance, 0);
         assertEq(fundTreasury.balance, fundShare.totalExpected());
+        assertTrue(fundShare.isFinalized());
     }
 
     function test_RevertWhen_FinalizeAndRoundIsNotCompleted() public {

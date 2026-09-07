@@ -2,7 +2,7 @@
 pragma solidity 0.8.36;
 
 import {Test} from "forge-std/Test.sol";
-import {ArtRegistry} from "../src/ArtRegistry.sol";
+import {ArtRegistry} from "../../src/ArtRegistry.sol";
 import {Merkle} from "murky/Merkle.sol";
 import {IERC721Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
