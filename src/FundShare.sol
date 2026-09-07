@@ -35,7 +35,7 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
     mapping(address stakeholder => bool isSubscribed) public hasSubscribed;
     uint256 public totalExpected;
     uint256 public totalReceived;
-    bool private _isFinalized;
+    bool public isFinalized;
 
     enum RoundState {
         OPEN,
@@ -70,7 +70,7 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
     }
 
     function subscribe() external payable onlyStakeholders {
-        RoundState currentState = getRoundState();
+        RoundState currentState = roundState();
         require(currentState == RoundState.OPEN, InvalidRoundState(currentState, RoundState.OPEN));
         require(!hasSubscribed[msg.sender], AlreadySubscribed());
         require(
@@ -86,7 +86,7 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
     }
 
     function refund(address to) external onlyStakeholders {
-        RoundState currentState = getRoundState();
+        RoundState currentState = roundState();
         require(to != address(0), ZeroAddressRecipient());
         require(currentState == RoundState.EXPIRED, InvalidRoundState(currentState, RoundState.EXPIRED));
         require(hasSubscribed[msg.sender], StakeholderNotSubscribed());
@@ -103,11 +103,11 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
     }
 
     function finalize() external {
-        RoundState currentState = getRoundState();
+        RoundState currentState = roundState();
         require(currentState == RoundState.COMPLETED, InvalidRoundState(currentState, RoundState.COMPLETED));
-        require(!_isFinalized, RoundAlreadyFinalized());
+        require(!isFinalized, RoundAlreadyFinalized());
 
-        _isFinalized = true;
+        isFinalized = true;
 
         (bool succ,) = fundTreasury.call{value: totalReceived}("");
         require(succ, TreasuryTransferFailed());
@@ -119,7 +119,7 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
         if (from != address(0) && to != address(0)) {
             // Note: refund() requires that the subscriber hold shares equal to their contribution,
             // so allowing transfers would prevent stakeholders from recovering their funds.
-            RoundState state = getRoundState();
+            RoundState state = roundState();
             require(state == RoundState.COMPLETED, TransferLockedDuringRound(state));
         }
         super._update(from, to, value);
@@ -129,7 +129,7 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
         return super.nonces(owner);
     }
 
-    function getRoundState() public view returns (RoundState state) {
+    function roundState() public view returns (RoundState state) {
         if (totalExpected == totalReceived) {
             return RoundState.COMPLETED;
         } else if (block.timestamp <= deadline) {
