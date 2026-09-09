@@ -4,6 +4,9 @@ pragma solidity 0.8.36;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import {Votes} from "@openzeppelin/contracts/governance/utils/Votes.sol";
+import {Time} from "@openzeppelin/contracts/utils/types/Time.sol";
+import {ERC6372Utils} from "@openzeppelin/contracts/utils/ERC6372Utils.sol";
 import {Nonces} from "@openzeppelin/contracts/utils/Nonces.sol";
 
 contract FundShare is ERC20, ERC20Permit, ERC20Votes {
@@ -127,6 +130,14 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
 
     function nonces(address owner) public view override(Nonces, ERC20Permit) returns (uint256) {
         return super.nonces(owner);
+    }
+
+    function clock() public view override(Votes) returns (uint48) {
+        return Time.timestamp();
+    }
+
+    function CLOCK_MODE() public view override(Votes) returns (string memory) {
+        return ERC6372Utils.timestampClockMode(clock);
     }
 
     function roundState() public view returns (RoundState state) {

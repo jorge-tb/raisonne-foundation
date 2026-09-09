@@ -215,15 +215,15 @@ contract FundShareTest is Test {
 
     function test_GetPastVotes_ReturnsZeroBeforeDelegation() public {
         (address subscriber, uint256 contribution) = _subscribeStakeholder(0);
-        uint256 delegationBlock = block.number + 1;
+        uint256 delegationTimestamp = block.timestamp + 1 days;
 
-        vm.roll(delegationBlock);
+        vm.warp(delegationTimestamp);
         vm.prank(subscriber);
         fundShare.delegate(subscriber);
 
-        vm.roll(delegationBlock + 10);
-        assertEq(fundShare.getPastVotes(subscriber, delegationBlock - 1), 0);
-        assertEq(fundShare.getPastVotes(subscriber, delegationBlock), contribution);
+        vm.warp(delegationTimestamp + 1 days);
+        assertEq(fundShare.getPastVotes(subscriber, delegationTimestamp - 1), 0);
+        assertEq(fundShare.getPastVotes(subscriber, delegationTimestamp), contribution);
         assertEq(fundShare.getVotes(subscriber), contribution);
     }
 
