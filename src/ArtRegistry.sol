@@ -11,21 +11,18 @@ contract ArtRegistry is ERC721URIStorage, Ownable {
     error GalleryAlreadyAdded(bytes32 root);
     error InvalidGallery(bytes32 root);
     error InvalidMerkleProof(bytes32 leaf);
-    error InvalidFundTreasury(address fundTreasury);
+    error InvalidFundTreasury(address treasury);
 
     event GalleryAdded(bytes32 indexed root);
     event GalleryRevoked(bytes32 indexed root);
     event ArtworkMinted(bytes32 indexed galleryRoot, uint256 indexed tokenId, string indexed cid);
 
-    address private immutable _fundTreasury;
+    address private immutable _treasury;
     mapping(bytes32 galleryRoot => bool) private _galleryRoots;
 
-    constructor(address timelockController, address fundTreasury)
-        ERC721("ArtRegistry", "ART")
-        Ownable(timelockController)
-    {
-        require(fundTreasury != address(0), InvalidFundTreasury(fundTreasury));
-        _fundTreasury = fundTreasury;
+    constructor(address timelock, address treasury) ERC721("ArtRegistry", "ART") Ownable(timelock) {
+        require(treasury != address(0), InvalidFundTreasury(treasury));
+        _treasury = treasury;
     }
 
     function addGallery(bytes32 root) external onlyOwner {
@@ -53,7 +50,7 @@ contract ArtRegistry is ERC721URIStorage, Ownable {
         require(MerkleProof.verifyCalldata(proof, root, leaf), InvalidMerkleProof(leaf));
 
         // Note: _mint over _safeMint provided receiver is a known address, avoid external unnecessary call
-        _mint(_fundTreasury, tokenId);
+        _mint(_treasury, tokenId);
         _setTokenURI(tokenId, cid);
 
         emit ArtworkMinted(root, tokenId, cid);
