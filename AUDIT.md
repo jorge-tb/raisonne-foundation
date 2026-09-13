@@ -4,8 +4,9 @@ Findings from reviewing this codebase against its own stated guarantees. Written
 contracts land, so the list grows and closes over time rather than arriving as a single
 report.
 
-**Scope:** `src/ArtRegistry.sol`, `src/FundShare.sol`
-**Out of scope:** `FundGovernor` and `FundTreasury`, both unimplemented
+**Scope:** `src/ArtRegistry.sol`, `src/FundShare.sol`, `src/FundGovernor.sol`, and the
+role wiring the tests deploy around `TimelockController`
+**Out of scope:** `src/FundTreasury.sol`, a placeholder with no logic to review
 **Compiler:** solc 0.8.36 · OpenZeppelin Contracts v5
 
 | ID | Severity | Title | Status |
@@ -14,7 +15,7 @@ report.
 | M-02 | Medium | `cid` is unrecoverable from the `ArtworkMinted` log | Open |
 | M-03 | Medium | Token IDs are not namespaced across galleries | Open |
 | L-01 | Low | `finalize()` forwards `totalReceived`, not the contract balance | Acknowledged |
-| L-02 | Low | `ERC20Votes` clock mode is unset | Open |
+| L-02 | Low | `ERC20Votes` clock mode is unset | Fixed |
 | L-03 | Low | Deploy script is the unmodified Foundry template | Open |
 | L-04 | Low | Unused `FundTreasury` import in `ArtRegistry` | Open |
 | I-01 | Info | Revoked gallery roots can be re-approved | Open |
@@ -110,15 +111,25 @@ once the round is finalised.
 The existing delegate-transfer test now finalises the round before transferring. Its
 failure against the fix was expected and confirms the lock is active.
 
-### Not yet covered
+### Follow-up coverage
 
 The README claims that total supply always equals total contributions, and this fix is
 what makes that claim hold by construction rather than by circumstance. The natural
 expression of it is an invariant test asserting equality between `totalSupply()` and
 `totalReceived()` across arbitrary sequences of subscribe, refund, and finalize.
 
-That test would have caught M-01 directly. Invariant testing is not yet started for this
-codebase; see *Current status* in the README.
+That test now exists. `test/invariant/FundShare.t.sol` drives the three state-changing
+functions plus a bounded `warp` from a handler with its own ghost accounting, and asserts
+`invariant_TotalSupplyMatchesTotalReceived` alongside four related properties. It would
+have caught M-01 directly.
+
+### Note on severity
+
+The commits carrying the test and the fix are labelled `[High]`. This report rates the
+finding Medium, for the reason given under *Impact*: recovery by reacquiring the
+transferred shares was possible in principle, if not reliably. The commit messages were
+written before that analysis and have not been rewritten; the rating here is the
+considered one.
 
 ---
 
@@ -164,6 +175,7 @@ intended one.
 
 ---
 
+
 ## L-01 · `finalize()` forwards `totalReceived`, not the contract balance
 
 **Severity:** Low
@@ -182,15 +194,24 @@ table represents.
 ## L-02 · `ERC20Votes` clock mode is unset
 
 **Severity:** Low
-**Status:** Open
+**Status:** Fixed
 
 `ERC20Votes` defaults to block numbers. `FundGovernor` must adopt the same clock or
-`GovernorVotes` will reject the pairing. The decision is currently being made implicitly
-by omission.
+`GovernorVotes` will reject the pairing. The decision was being made implicitly by
+omission.
 
 Timestamp-based governance is generally preferable, since block times vary and proposal
-durations expressed in blocks drift. If that is the intent, the clock overrides belong on
-`FundShare` before `FundGovernor` is written.
+durations expressed in blocks drift. The clock overrides belonged on `FundShare`, before
+`FundGovernor` was written.
+
+**Fix:** `FundShare` now overrides `clock()` to return `Time.timestamp()` and
+`CLOCK_MODE()` to return `ERC6372Utils.timestampClockMode(clock)`, declaring timestamp
+mode per ERC-6372. `GovernorVotes` reads the clock from the token, so the governor follows
+without further configuration, and the voting delay and period are consequently durations
+in seconds rather than block counts.
+
+The ordering was deliberate: the override landed before `FundGovernor` existed, so the
+governor was never written against the wrong clock.
 
 ---
 
@@ -249,3 +270,4 @@ depends on M-02 being fixed before an indexer can reconstruct anything useful.
 The allowlist loop is correctly unchecked-incremented and bounded in practice by the block
 gas limit. The practical maximum stakeholder count should be stated, since exceeding it
 makes the contract undeployable rather than merely expensive.
+
