@@ -3,6 +3,7 @@ src = "src"
 out = "out"
 libs = ["lib"]
 solc_version = "0.8.36"
+solc = "0.8.36"
 
 [invariant]
 fail_on_revert = false
