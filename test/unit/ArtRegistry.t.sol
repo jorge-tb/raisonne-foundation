@@ -9,8 +9,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract ArtRegistryTest is Test {
     ArtRegistry artRegistry;
-    address timelockController;
-    address fundTreasury;
+    address timelock;
+    address treasury;
 
     struct Artwork {
         uint256 tokenId;
@@ -18,19 +18,19 @@ contract ArtRegistryTest is Test {
     }
 
     function setUp() public {
-        timelockController = address(1);
-        fundTreasury = address(2);
-        artRegistry = new ArtRegistry(timelockController, fundTreasury);
+        timelock = makeAddr("timelock");
+        treasury = makeAddr("treasury");
+        artRegistry = new ArtRegistry(timelock, treasury);
     }
 
     function test_Constructor_SetsTimelockAsOwner() public view {
-        vm.assertEq(artRegistry.owner(), timelockController);
+        vm.assertEq(artRegistry.owner(), timelock);
     }
 
     function test_RevertWhen_InvalidFundTreasury() public {
-        address invalidfundTreasury = address(0);
+        address invalidTreasury = address(0);
         vm.expectRevert(abi.encodeWithSelector(ArtRegistry.InvalidFundTreasury.selector, address(0)));
-        artRegistry = new ArtRegistry(timelockController, invalidfundTreasury);
+        artRegistry = new ArtRegistry(timelock, invalidTreasury);
     }
 
     function testFuzz_AddGallery_FromTimelock(bytes32 galleryRoot) public {
@@ -38,7 +38,7 @@ contract ArtRegistryTest is Test {
         vm.expectEmit(true, true, true, true);
         emit ArtRegistry.GalleryAdded(galleryRoot);
 
-        vm.prank(timelockController);
+        vm.prank(timelock);
         artRegistry.addGallery(galleryRoot);
 
         vm.assertTrue(artRegistry.isGalleryEnabled(galleryRoot));
@@ -52,28 +52,28 @@ contract ArtRegistryTest is Test {
 
     function test_RevertWhen_AddGalleryZeroRoot() public {
         vm.expectRevert(ArtRegistry.ZeroRoot.selector);
-        vm.prank(timelockController);
+        vm.prank(timelock);
         artRegistry.addGallery(bytes32(0));
     }
 
     function test_RevertWhen_AddGalleryThatIsAlreadyAdded() public {
         bytes32 galleryRoot = keccak256("gallery-001");
-        vm.prank(timelockController);
+        vm.prank(timelock);
         artRegistry.addGallery(galleryRoot);
 
         vm.expectRevert(abi.encodeWithSelector(ArtRegistry.GalleryAlreadyAdded.selector, galleryRoot));
-        vm.prank(timelockController);
+        vm.prank(timelock);
         artRegistry.addGallery(galleryRoot);
     }
 
     function test_RevokeGallery_FromTimelock() public {
         bytes32 galleryRoot = keccak256("gallery-001");
-        vm.prank(timelockController);
+        vm.prank(timelock);
         artRegistry.addGallery(galleryRoot);
 
         vm.expectEmit(true, true, true, true);
         emit ArtRegistry.GalleryRevoked(galleryRoot);
-        vm.prank(timelockController);
+        vm.prank(timelock);
         artRegistry.revokeGallery(galleryRoot);
 
         vm.assertTrue(!artRegistry.isGalleryEnabled(galleryRoot));
@@ -88,7 +88,7 @@ contract ArtRegistryTest is Test {
     function test_RevertWhen_GalleryIsDisabled() public {
         bytes32 galleryRoot = keccak256("gallery-001");
         vm.expectRevert(abi.encodeWithSelector(ArtRegistry.InvalidGallery.selector, galleryRoot));
-        vm.prank(timelockController);
+        vm.prank(timelock);
         artRegistry.revokeGallery(galleryRoot);
     }
 
@@ -106,7 +106,7 @@ contract ArtRegistryTest is Test {
         // Compute gallery root
         bytes32 root = merkle.getRoot(data);
         // Add gallery root
-        vm.prank(timelockController);
+        vm.prank(timelock);
         artRegistry.addGallery(root);
         // Mint artwork - obtain merkle proof
         bytes32[] memory proof = merkle.getProof(data, 0);
@@ -120,7 +120,7 @@ contract ArtRegistryTest is Test {
         vm.assertEq(artwork1URI, "ipfs://CID-001");
         // Ensure it belongs to fund treasury
         address owner = artRegistry.ownerOf(artworks[0].tokenId);
-        vm.assertEq(owner, fundTreasury);
+        vm.assertEq(owner, treasury);
     }
 
     function test_RevertWhen_MintArtworkMetadataTampered() public {
@@ -138,7 +138,7 @@ contract ArtRegistryTest is Test {
         Artwork memory invalid = Artwork(1, "CID-TAMPERED");
         bytes32 invalidLeaf = _hashArtwork(invalid);
 
-        vm.prank(timelockController);
+        vm.prank(timelock);
         artRegistry.addGallery(root);
 
         bytes32[] memory proof = merkle.getProof(data, 0);
@@ -158,7 +158,7 @@ contract ArtRegistryTest is Test {
         bytes32[] memory data = _hashArtworks(artworks);
         bytes32 root = merkle.getRoot(data);
 
-        vm.prank(timelockController);
+        vm.prank(timelock);
         artRegistry.addGallery(root);
 
         bytes32[] memory proof = merkle.getProof(data, 0);

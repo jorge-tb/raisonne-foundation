@@ -32,7 +32,7 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
     event Refunded(address indexed stakeholder, address indexed recipient, uint256 contribution);
     event RoundFinalized(address indexed finalizer);
 
-    address public immutable fundTreasury;
+    address public immutable treasury;
     uint48 public immutable deadline;
     mapping(address stakeholder => uint256 contribution) public expectedContributions;
     mapping(address stakeholder => bool isSubscribed) public hasSubscribed;
@@ -46,11 +46,11 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
         COMPLETED
     }
 
-    constructor(address _fundTreasury, uint48 _deadline, address[] memory stakeholders, uint256[] memory contributions)
+    constructor(address _treasury, uint48 _deadline, address[] memory stakeholders, uint256[] memory contributions)
         ERC20("FundShare", "FS")
         ERC20Permit("FundShare")
     {
-        require(_fundTreasury != address(0), InvalidFundTreasury());
+        require(_treasury != address(0), InvalidFundTreasury());
         require(_deadline > block.timestamp, InvalidDeadline());
         require(stakeholders.length > 0, ZeroStakeholders());
         require(stakeholders.length == contributions.length, LengthMismatch(stakeholders.length, contributions.length));
@@ -69,7 +69,7 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
         }
 
         deadline = _deadline;
-        fundTreasury = _fundTreasury;
+        treasury = _treasury;
     }
 
     function subscribe() external payable onlyStakeholders {
@@ -112,7 +112,7 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
 
         isFinalized = true;
 
-        (bool succ,) = fundTreasury.call{value: totalReceived}("");
+        (bool succ,) = treasury.call{value: totalReceived}("");
         require(succ, TreasuryTransferFailed());
 
         emit RoundFinalized(msg.sender);

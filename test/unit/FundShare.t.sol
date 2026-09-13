@@ -9,14 +9,14 @@ import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20P
 
 contract FundShareTest is Test {
     FundShare fundShare;
-    address fundTreasury;
+    address treasury;
     uint48 deadline;
     address[] stakeholders;
     uint256[] privateKeys;
     uint256[] contributions;
 
     function setUp() public {
-        fundTreasury = makeAddr("FundTreasury");
+        treasury = makeAddr("FundTreasury");
         deadline = uint48(block.timestamp + 1 weeks);
         for (uint256 i = 0; i < 10; i++) {
             string memory stakeholderName = string.concat("stakeholder", vm.toString(i));
@@ -25,11 +25,11 @@ contract FundShareTest is Test {
             privateKeys.push(privKey);
             contributions.push(vm.randomUint(1, 100));
         }
-        fundShare = new FundShare(fundTreasury, deadline, stakeholders, contributions);
+        fundShare = new FundShare(treasury, deadline, stakeholders, contributions);
     }
 
     function test_Constructor_SetsFundTreasury() public view {
-        assertEq(fundShare.fundTreasury(), fundTreasury);
+        assertEq(fundShare.treasury(), treasury);
     }
 
     function test_Constructor_SetsDeadline() public view {
@@ -68,7 +68,7 @@ contract FundShareTest is Test {
     function test_RevertWhen_InvalidDeadline() public {
         vm.warp(2 weeks);
         vm.expectRevert(abi.encodeWithSelector(FundShare.InvalidDeadline.selector));
-        new FundShare(fundTreasury, uint48(block.timestamp - 1 weeks), stakeholders, contributions);
+        new FundShare(treasury, uint48(block.timestamp - 1 weeks), stakeholders, contributions);
     }
 
     function test_RevertWhen_LengthMismatch() public {
@@ -76,27 +76,27 @@ contract FundShareTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(FundShare.LengthMismatch.selector, stakeholders.length, contributions.length)
         );
-        new FundShare(fundTreasury, deadline, stakeholders, contributions);
+        new FundShare(treasury, deadline, stakeholders, contributions);
     }
 
     function test_RevertWhen_ZeroStakeholders() public {
         address[] memory emptyArray;
         vm.expectRevert(abi.encodeWithSelector(FundShare.ZeroStakeholders.selector));
-        new FundShare(fundTreasury, deadline, emptyArray, contributions);
+        new FundShare(treasury, deadline, emptyArray, contributions);
     }
 
     function testFuzz_RevertWhen_ZeroContribution(uint256 index) public {
         index = bound(index, 0, contributions.length - 1);
         contributions[index] = 0;
         vm.expectRevert(abi.encodeWithSelector(FundShare.ZeroContribution.selector, index));
-        new FundShare(fundTreasury, deadline, stakeholders, contributions);
+        new FundShare(treasury, deadline, stakeholders, contributions);
     }
 
     function testFuzz_RevertWhen_ZeroAddressStakeholder(uint256 index) public {
         index = bound(index, 0, stakeholders.length - 1);
         stakeholders[index] = address(0);
         vm.expectRevert(abi.encodeWithSelector(FundShare.ZeroAddressStakeholder.selector, index));
-        new FundShare(fundTreasury, deadline, stakeholders, contributions);
+        new FundShare(treasury, deadline, stakeholders, contributions);
     }
 
     function testFuzz_RevertWhen_DuplicatedStakeholder(uint256 indexA, uint256 indexB) public {
@@ -105,7 +105,7 @@ contract FundShareTest is Test {
         vm.assume(indexA != indexB);
         stakeholders[indexB] = stakeholders[indexA];
         vm.expectRevert(abi.encodeWithSelector(FundShare.DuplicatedStakeholder.selector, stakeholders[indexA]));
-        new FundShare(fundTreasury, deadline, stakeholders, contributions);
+        new FundShare(treasury, deadline, stakeholders, contributions);
     }
 
     function test_Subscribe_MintsSharesWithoutVotingPower() public {
@@ -402,7 +402,7 @@ contract FundShareTest is Test {
         fundShare.finalize();
 
         assertEq(address(fundShare).balance, 0);
-        assertEq(fundTreasury.balance, fundShare.totalExpected());
+        assertEq(treasury.balance, fundShare.totalExpected());
         assertTrue(fundShare.isFinalized());
     }
 
