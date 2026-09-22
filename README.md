@@ -45,26 +45,33 @@ proposal's calldata before voting.
 | `ArtRegistry` | ERC-721. Holds approved gallery roots; mints only against a valid proof. | Implemented, 13 tests |
 | `FundShare` | ERC-20 + `ERC20Votes` + `ERC20Permit`. Equity, voting power, and the founding subscription round. | Implemented, 38 unit tests + 5 invariants |
 | `FundGovernor` + `TimelockController` | Proposal lifecycle; executes payloads through the timelock. | Implemented, 6 unit + 18 integration tests |
-| `FundTreasury` | UUPS proxy. Holds ETH and the collection; distributes sale proceeds. | Stub — accepts ETH, nothing else |
+| `FundTreasury` | UUPS proxy. Holds ETH and the collection; pays sellers and releases artworks. | Implemented, 23 unit tests |
 
 ### Deployment topology
 
 Ownership is arranged so that no single key can move value or approve metadata.
 
-1. `FundTreasury` is deployed first; both other contracts need its address.
-2. `FundShare` is deployed with the treasury, the subscription deadline, and the
+1. `TimelockController` is deployed with empty proposer and executor sets and the
+   deployer as temporary admin. It comes first because it is the treasury's owner from
+   the treasury's first transaction.
+2. `FundTreasury`'s implementation is deployed, then an `ERC1967Proxy` over it whose
+   construction calldata is `initialize(timelock)`. Every later reference is to the
+   proxy address.
+3. `FundShare` is deployed with the treasury, the subscription deadline, and the
    allowlist.
-3. `TimelockController` is deployed with empty proposer and executor sets and the
-   deployer as temporary admin.
 4. `ArtRegistry` is deployed with the timelock as `Ownable` owner and the treasury as
    mint recipient.
 5. `FundGovernor` is deployed with the timelock and the share token.
 6. The deployer grants `PROPOSER_ROLE` and `CANCELLER_ROLE` to the governor,
    `EXECUTOR_ROLE` to `address(0)`, and then renounces `DEFAULT_ADMIN_ROLE`.
+7. `initializeRegistry(registry)` completes the treasury's wiring. It is `onlyOwner`,
+   so by this point it is reachable only as a passed proposal — see *Initialisation is
+   two-step*.
 
 After step 6 the deployer retains no privileges anywhere in the system. The only route
-to `addGallery` or `revokeGallery` is a passed proposal, since the timelock is the
-registry's owner and the governor is the timelock's only proposer.
+to `addGallery`, `revokeGallery`, `pay`, `sell`, or a treasury upgrade is a passed
+proposal, since the timelock owns both the registry and the treasury and the governor is
+the timelock's only proposer.
 
 ### Founding round
 
@@ -100,8 +107,9 @@ directly by the invariant suite rather than left as a claim in prose.
 Payment and registration are deliberately decoupled — see *Accepted limitations*.
 
 The full path — curate, propose, vote, queue, execute, mint — runs end to end in
-`test/integration/FundGovernor.t.sol`. Only the payment leg is absent, pending
-`FundTreasury`.
+`test/integration/FundGovernor.t.sol`. The payment leg is still absent from it: the
+treasury implements `pay`, but that suite predates it and deploys the bare
+implementation as an address sink rather than the proxy. Rewiring it is the next step.
 
 ---
 
@@ -131,9 +139,18 @@ holders carrying no weight, tokens acquired after the snapshot not counting, and
 reverts for voting twice, voting after the deadline, queuing before success, executing
 before the timelock delay, and calling `addGallery` outside governance.
 
-**`FundTreasury`** — not started. The deployed contract is a placeholder that accepts
-ETH so the rest of the system can be wired and tested. The UUPS proxy, custody of the
-collection, and proceeds distribution are still to be written.
+**`FundTreasury`** — complete, 23 unit tests. The tests exercise the contract through a
+real `ERC1967Proxy` with the timelock as owner: both initialisation steps and their
+zero-address guards, the implementation being permanently uninitialisable, every
+re-initialisation path rejected (fuzzed over the caller), `pay` including the
+insufficient-balance guard fuzzed over the balance and a receiver that reverts on ETH,
+`sell` including an unminted token, access control on all four owner-gated functions,
+`onERC721Received` fuzzed over every argument, and an upgrade to a probe implementation
+asserting that the implementation slot moves while owner, registry, balance, and custody
+of all five artworks survive it.
+
+Proceeds distribution is not implemented. Money reaches shareholders only as a
+governance-approved `pay`; there is no pro-rata claim — see *Accepted limitations*.
 
 ---
 
@@ -260,13 +277,60 @@ approved one.
 **Minting is permissionless.** The NFT goes to the treasury regardless of caller, so
 there is nothing for a caller to capture and no reason to gate it.
 
-**`_mint`, not `_safeMint`.** The receiver is a known immutable address, which avoids
-imposing an `IERC721Receiver` implementation on the treasury.
+**`_mint`, not `_safeMint`.** The receiver is a known immutable address that the
+registry itself was deployed against, so the receiver check buys nothing and costs an
+external call. The treasury implements `IERC721Receiver` regardless, for artworks
+arriving by safe transfer from somewhere other than the mint path.
 
 **Current state in storage, history in events.** Nothing on-chain reads when a gallery
 was approved, so it belongs in logs. The inverse holds for `tokenURI`, which contracts
 must be able to read and which therefore cannot live in events — the EVM has no opcode
 that reads a log.
+
+### `FundTreasury`
+
+**The only upgradeable contract in the system, deliberately.** `ArtRegistry` carries the
+immutability guarantee the fund is built on, so it is fixed forever; the treasury carries
+no such promise and is the one component expected to gain behaviour — other asset
+types, a distribution mechanism, a different sale route. Splitting them this way keeps
+upgradeability away from the thing that must not change.
+
+**UUPS, not a transparent proxy.** The upgrade entry point lives in the implementation
+rather than in a separate admin contract, so there is no proxy admin to secure and no
+selector-clash rule to reason about, and ordinary calls carry no admin check. The cost is
+that an implementation without `_authorizeUpgrade` bricks the proxy permanently, which is
+a property of the implementation and therefore reviewable at proposal time.
+
+**`_authorizeUpgrade` is `onlyOwner`, and the owner is the timelock.** Replacing the
+treasury's code takes the same passed proposal and the same delay as spending from it.
+The constructor calls `_disableInitializers()`, so the implementation can never be
+initialised in its own right — there is no uninitialised contract sitting behind the
+proxy for someone to claim and upgrade.
+
+**Initialisation is two-step.** `ArtRegistry`'s constructor needs the treasury address
+and the treasury needs the registry address: a cycle. `initialize(owner)` runs in the
+proxy's construction calldata, and `initializeRegistry(registry)` closes the loop later
+under `reinitializer(2)`. The alternative — predicting an address with CREATE2 —
+makes deployment depend on a salt and a matching bytecode hash to state a relationship
+that a second transaction states directly.
+
+**Storage is an ERC-7201 namespace.** The one struct lives at a slot derived from
+`raisonne.storage.FundTreasury` rather than at the bottom of the inherited layout, so a
+future version can add fields without a gap array and without colliding with anything
+OpenZeppelin adds to its own upgradeable base contracts.
+
+**`pay` and `sell` are `onlyOwner`; `receive()` is open.** Value leaves only through a
+passed proposal. Value arriving is unconditional — `finalize()` forwards the whole
+round into the treasury, and refusing an unexpected transfer would protect nothing.
+
+**`pay` carries a `reason` string, emitted and not stored.** Nothing on-chain reads why a
+payment was made, and the proposal calldata already carries it; the event is what an
+indexer reconstructs the fund's ledger from.
+
+**`sell` uses `safeTransferFrom` where minting uses `_mint`.** Here the recipient is an
+arbitrary buyer rather than an address the contract was deployed against, so the receiver
+check is the difference between a sale and an artwork locked in a contract that cannot
+move it.
 
 ---
 
@@ -281,6 +345,17 @@ can subscribe, and that guarantee lives in whatever verification produced the li
 controls every vote. This is ordinary for an equity structure, where votes track capital
 at risk, and the mitigation is the timelock: minority holders can see a passed proposal
 before it executes and exit. That is an exit right, not a veto.
+
+**An upgradeable treasury widens what a majority can do.** Governance can already spend
+the fund's ETH and sell its artworks through `pay` and `sell`, so upgradeability adds no
+new category of risk, but it does mean the rules a holder read at subscription are not
+the rules that necessarily apply later. The timelock delay is the only mitigation, and it
+is the same exit right as above.
+
+**There is no pro-rata distribution.** Sale proceeds sit in the treasury until a proposal
+sends them somewhere; a shareholder cannot claim their share against their balance. A
+distribution against a snapshot of `FundShare` is the obvious next contract and is not
+written.
 
 **The exit right depends on a liquid secondary market.** The timelock gives minority
 holders a window to sell before a proposal executes. Whether anyone is buying shares in
@@ -330,10 +405,14 @@ forge test --match-path "test/invariant/*"
 forge test --match-contract ArtRegistry -vvv
 forge test --match-contract FundShare -vvv
 forge test --match-contract FundGovernor -vvv
+forge test --match-contract FundTreasury -vvv
 ```
 
-Compiler pinned to solc 0.8.36. Dependencies: OpenZeppelin Contracts v5, Murky (Merkle
-tree construction in tests), forge-std.
+Compiler pinned to solc 0.8.37 in `foundry.toml`; sources declare `^0.8.36`, so the pin
+is what fixes the build and the pragma only states the floor. Dependencies: OpenZeppelin
+Contracts v5, OpenZeppelin Contracts Upgradeable v5 (`Initializable`,
+`OwnableUpgradeable`, `UUPSUpgradeable`), Murky (Merkle tree construction in tests),
+forge-std.
 
 Tests are split by kind: `test/unit/` for per-contract behaviour, `test/integration/`
 for the deployed system end to end, `test/invariant/` for properties asserted across
@@ -349,4 +428,5 @@ working system — recorded as L-03 in `AUDIT.md`.
 
 A mapping from each bootcamp topic to the file and line where it is exercised will live
 in `CONCEPTS.md`, still to be written. A self-audit of this codebase, in findings
-format, lives in `AUDIT.md` and is updated as contracts land.
+format, lives in `AUDIT.md` and is updated as contracts land — it does not yet cover
+`FundTreasury`, which was still a placeholder when the last pass was written.
