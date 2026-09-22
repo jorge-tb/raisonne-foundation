@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.36;
+pragma solidity ^0.8.36;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Votes} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
@@ -51,6 +51,7 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
         ERC20Permit("FundShare")
     {
         require(_treasury != address(0), InvalidFundTreasury());
+        // forge-lint: disable-next-line(block-timestamp)
         require(_deadline > block.timestamp, InvalidDeadline());
         require(stakeholders.length > 0, ZeroStakeholders());
         require(stakeholders.length == contributions.length, LengthMismatch(stakeholders.length, contributions.length));
@@ -143,6 +144,7 @@ contract FundShare is ERC20, ERC20Permit, ERC20Votes {
     function roundState() public view returns (RoundState state) {
         if (totalExpected == totalReceived) {
             return RoundState.COMPLETED;
+            // forge-lint: disable-next-line(block-timestamp)
         } else if (block.timestamp <= deadline) {
             return RoundState.OPEN;
         } else {

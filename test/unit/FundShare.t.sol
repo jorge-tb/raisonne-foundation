@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.36;
+pragma solidity ^0.8.36;
 
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
@@ -192,6 +192,7 @@ contract FundShareTest is Test {
         fundShare.delegate(subscriber2);
 
         vm.prank(subscriber1);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         fundShare.transfer(subscriber2, contribution1);
 
         assertEq(fundShare.getVotes(subscriber1), 0);
@@ -210,6 +211,7 @@ contract FundShareTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(FundShare.TransferLockedDuringRound.selector, FundShare.RoundState.OPEN));
         vm.prank(subscriber1);
+        // forge-lint: disable-next-line(erc20-unchecked-transfer)
         fundShare.transfer(subscriber2, contribution1);
     }
 

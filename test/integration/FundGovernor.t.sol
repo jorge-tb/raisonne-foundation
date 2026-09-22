@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.36;
+pragma solidity ^0.8.36;
 
 import {Test} from "forge-std/Test.sol";
 import {FundGovernor} from "../../src/FundGovernor.sol";
@@ -419,6 +419,7 @@ contract FundGovernorIntegrationTest is Test {
         vm.prank(stakeholderWith20Percent);
         governor.castVote(proposalId, uint8(GovernorCountingSimple.VoteType.Against));
 
+        // forge-lint: disable-next-line(incorrect-shift)
         bytes32 allowedStates = bytes32(1 << uint8(IGovernor.ProposalState.Succeeded));
         IGovernor.ProposalState currentState = governor.state(proposalId);
 
@@ -442,6 +443,7 @@ contract FundGovernorIntegrationTest is Test {
 
         vm.warp(governor.proposalDeadline(proposalId) + 1);
         address stakeholderWith25Percent = _stakeholders[0];
+        // forge-lint: disable-next-line(incorrect-shift)
         bytes32 allowedStates = bytes32(1 << uint8(IGovernor.ProposalState.Active));
         IGovernor.ProposalState currentState = governor.state(proposalId);
 
