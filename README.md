@@ -52,26 +52,30 @@ proposal's calldata before voting.
 Ownership is arranged so that no single key can move value or approve metadata.
 
 1. `TimelockController` is deployed with empty proposer and executor sets and the
-   deployer as temporary admin. It comes first because it is the treasury's owner from
-   the treasury's first transaction.
+   deployer as temporary admin.
 2. `FundTreasury`'s implementation is deployed, then an `ERC1967Proxy` over it whose
-   construction calldata is `initialize(timelock)`. Every later reference is to the
-   proxy address.
+   construction calldata is `initialize(deployer)`. The deployer owns the treasury only
+   long enough to finish its wiring. Every later reference is to the proxy address.
 3. `FundShare` is deployed with the treasury, the subscription deadline, and the
    allowlist.
-4. `ArtRegistry` is deployed with the timelock as `Ownable` owner and the treasury as
+4. `FundGovernor` is deployed with the timelock and the share token.
+5. `ArtRegistry` is deployed with the timelock as `Ownable` owner and the treasury as
    mint recipient.
-5. `FundGovernor` is deployed with the timelock and the share token.
-6. The deployer grants `PROPOSER_ROLE` and `CANCELLER_ROLE` to the governor,
+6. The deployer calls `initializeRegistry(registry)`, completing the treasury's wiring —
+   see *Initialisation is two-step* — and then transfers the treasury's ownership to the
+   timelock.
+7. The deployer grants `PROPOSER_ROLE` and `CANCELLER_ROLE` to the governor,
    `EXECUTOR_ROLE` to `address(0)`, and then renounces `DEFAULT_ADMIN_ROLE`.
-7. `initializeRegistry(registry)` completes the treasury's wiring. It is `onlyOwner`,
-   so by this point it is reachable only as a passed proposal — see *Initialisation is
-   two-step*.
 
-After step 6 the deployer retains no privileges anywhere in the system. The only route
+After step 7 the deployer retains no privileges anywhere in the system. The only route
 to `addGallery`, `revokeGallery`, `pay`, `sell`, or a treasury upgrade is a passed
 proposal, since the timelock owns both the registry and the treasury and the governor is
 the timelock's only proposer.
+
+Owning the treasury briefly lets the registry be wired during deployment rather than by a
+first governance proposal. The treasury holds nothing until the founding round
+finalises, and `script/Deploy.s.sol` asserts the final ownership and role layout before
+recording the deployment. The sequence lives in `script/libs/RaisonneDeployer.sol`.
 
 ### Founding round
 
