@@ -12,7 +12,7 @@ role wiring the tests deploy around `TimelockController`
 | ID | Severity | Title | Status |
 |---|---|---|---|
 | M-01 | Medium | Transferring shares during the founding round strands the refund | Fixed |
-| M-02 | Medium | `cid` is unrecoverable from the `ArtworkMinted` log | Open |
+| M-02 | Medium | `cid` is unrecoverable from the `ArtworkMinted` log | Fixed |
 | M-03 | Medium | Token IDs are not namespaced across galleries | Open |
 | L-01 | Low | `finalize()` forwards `totalReceived`, not the contract balance | Acknowledged |
 | L-02 | Low | `ERC20Votes` clock mode is unset | Fixed |
@@ -137,7 +137,7 @@ considered one.
 
 **Severity:** Medium
 **Location:** `ArtRegistry.sol` — `ArtworkMinted` event declaration
-**Status:** Open
+**Status:** Fixed
 
 The `cid` parameter is declared `indexed`. Indexed parameters of dynamic type are not
 stored in the log data — the EVM records `keccak256(cid)` as a topic and the value itself
@@ -150,6 +150,11 @@ one thing the event fails to record.
 
 **Fix:** move `cid` to the non-indexed data section. If filtering by CID is genuinely
 required, add a separate indexed `bytes32` hash alongside the plain string.
+
+**Resolution:** `cid` is no longer `indexed`, so the string is ABI-encoded into the log
+data and readable by any consumer (commit `d677b50c1fa344e1d106088b90f32216bf0ff0db`).
+Filtering by CID was not needed, so no hash topic was added. The existing event test
+passes unchanged, since `expectEmit` compares the data section as well as the topics.
 
 ---
 
