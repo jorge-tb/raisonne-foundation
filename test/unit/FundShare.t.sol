@@ -217,7 +217,7 @@ contract FundShareTest is Test {
 
     function test_GetPastVotes_ReturnsZeroBeforeDelegation() public {
         (address subscriber, uint256 contribution) = _subscribeStakeholder(0);
-        uint256 delegationTimestamp = block.timestamp + 1 days;
+        uint256 delegationTimestamp = vm.getBlockTimestamp() + 1 days;
 
         vm.warp(delegationTimestamp);
         vm.prank(subscriber);
