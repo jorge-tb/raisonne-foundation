@@ -7,7 +7,7 @@ report.
 **Scope:** `src/ArtRegistry.sol`, `src/FundShare.sol`, `src/FundGovernor.sol`, and the
 role wiring the tests deploy around `TimelockController`
 **Out of scope:** `src/FundTreasury.sol`, a placeholder with no logic to review
-**Compiler:** solc 0.8.36 · OpenZeppelin Contracts v5
+**Compiler:** solc 0.8.37 · OpenZeppelin Contracts v5
 
 | ID | Severity | Title | Status |
 |---|---|---|---|
