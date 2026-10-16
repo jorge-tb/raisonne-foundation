@@ -4,8 +4,8 @@ pragma solidity ^0.8.36;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
-import {DeploymentRecord,Deployment} from "./libs/DeploymentRecord.sol";
-import {ProposalRecord,Proposal} from "./libs/ProposalRecord.sol";
+import {DeploymentRecord, Deployment} from "./libs/DeploymentRecord.sol";
+import {ProposalRecord, Proposal} from "./libs/ProposalRecord.sol";
 import {FundGovernor} from "@raisonne/FundGovernor.sol";
 
 /**
@@ -14,7 +14,6 @@ import {FundGovernor} from "@raisonne/FundGovernor.sol";
  * Reverts unless the proposal has reached the Succeeded state.
  */
 contract Queue is Script {
-
     function run() public {
         // Read deployment.
         Deployment memory d = DeploymentRecord.read(block.chainid);

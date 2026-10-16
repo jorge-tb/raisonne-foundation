@@ -45,7 +45,9 @@ contract Mint is Script {
         console.log("minted token owner: %s", owner);
 
         // Post-validate on-chain state.
-        require(keccak256(bytes(tokenURI)) == keccak256(bytes(string.concat("ipfs://", unminted.cId))), "invalid token URI");
+        require(
+            keccak256(bytes(tokenURI)) == keccak256(bytes(string.concat("ipfs://", unminted.cId))), "invalid token URI"
+        );
         require(owner == address(d.treasuryProxy), "treasury must be the owner of the artwork NFT");
     }
 }
