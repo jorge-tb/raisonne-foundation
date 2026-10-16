@@ -419,6 +419,12 @@ for the deployed system end to end, `test/invariant/` for properties asserted ac
 arbitrary call sequences. The invariant profile runs with `fail_on_revert = false`,
 since the handler deliberately drives calls that the contract is expected to reject.
 
+The build uses the via-IR pipeline (`via_ir = true`). It is required by the deployment
+library, whose single function exceeds the legacy code generator's stack limit. One
+consequence for tests: under via-IR the optimizer may reuse a `block.timestamp` read
+across a `vm.warp`, so tests that compute a time after warping read it through
+`vm.getBlockTimestamp()` instead.
+
 The deploy script in `script/` is still the Foundry template and does not deploy a
 working system — recorded as L-03 in `AUDIT.md`.
 
