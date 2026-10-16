@@ -425,8 +425,23 @@ consequence for tests: under via-IR the optimizer may reuse a `block.timestamp` 
 across a `vm.warp`, so tests that compute a time after warping read it through
 `vm.getBlockTimestamp()` instead.
 
-The deploy script in `script/` is still the Foundry template and does not deploy a
-working system — recorded as L-03 in `AUDIT.md`.
+Deployment and interaction scripts live in `script/` — see *Deploy and interact* below.
+
+---
+
+## Deploy and interact
+
+`script/` deploys the system and drives it through its lifecycle one transaction per
+script: `Deploy`, `Subscribe`, `Finalize`, `ProposeGallery`, `Vote`, `Queue`, `Execute`,
+`Mint`. Scripts hand state to each other through JSON records under `deployments/` and
+`proposals/`, keyed by chain id, and validate on-chain state before and after every
+broadcast.
+
+The whole path — deploy, fill the round, approve a gallery through governance, mint into
+the treasury — has been run end to end against a local Anvil node.
+
+Environment variables, units, the deployment sequence, and a step-by-step Anvil
+walkthrough are in [`script/README.md`](script/README.md).
 
 ---
 
