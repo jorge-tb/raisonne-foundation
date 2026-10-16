@@ -15,7 +15,7 @@ contract ArtRegistry is ERC721URIStorage, Ownable {
 
     event GalleryAdded(bytes32 indexed root);
     event GalleryRevoked(bytes32 indexed root);
-    event ArtworkMinted(bytes32 indexed galleryRoot, uint256 indexed tokenId, string indexed cid);
+    event ArtworkMinted(bytes32 indexed galleryRoot, uint256 indexed tokenId, string cid);
 
     address private immutable _treasury;
     mapping(bytes32 galleryRoot => bool) private _galleryRoots;
