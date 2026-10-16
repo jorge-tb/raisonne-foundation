@@ -14,7 +14,8 @@ out/
 # Ignores local anvil deployment artifacts
 *.log
 /deployments/31337.json
-/proposals/31337/
+/proposals/31337/*
+!/proposals/31337/.gitkeep
 
 # Docs
 docs/
