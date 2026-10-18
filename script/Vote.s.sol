@@ -28,6 +28,7 @@ contract Vote is Script {
         require(d.token.getVotes(msg.sender) > 0, "caller has not voting power");
 
         vmSafe.startBroadcast();
+        // Vote in favour of the proposal.
         d.governor.castVote(proposalId, uint8(GovernorCountingSimple.VoteType.For));
         vmSafe.stopBroadcast();
 
