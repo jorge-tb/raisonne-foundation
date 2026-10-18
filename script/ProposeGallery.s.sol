@@ -47,7 +47,7 @@ contract ProposeGallery is Script {
     }
 
     function _createProposal(Deployment memory d, bytes32 galleryRoot, string memory description)
-        internal
+        private
         returns (uint256 proposalId)
     {
         address[] memory targets = new address[](1);
