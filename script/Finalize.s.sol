@@ -21,16 +21,12 @@ contract Finalize is Script {
 
         vmSafe.startBroadcast();
         // Finalize the foundation round.
-        _finalizeFundRound(d);
+        d.token.finalize();
         vmSafe.stopBroadcast();
 
         // Post-validate on-chain state.
         require(address(d.token).balance == 0, "token contract not moved all its funds");
         require(address(d.treasuryProxy).balance == d.token.totalExpected(), "treasury not obtained expected funds");
         require(d.token.isFinalized(), "foundation round was not marked as finished");
-    }
-
-    function _finalizeFundRound(Deployment memory d) internal {
-        d.token.finalize();
     }
 }

@@ -6,7 +6,6 @@ import {console} from "forge-std/console.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {DeploymentRecord, Deployment} from "./libs/DeploymentRecord.sol";
 import {ProposalRecord, Proposal} from "./libs/ProposalRecord.sol";
-import {FundGovernor} from "@raisonne/FundGovernor.sol";
 
 /**
  * @dev Schedules a succeeded proposal on the timelock, starting the execution delay.
@@ -32,14 +31,10 @@ contract Queue is Script {
 
         vmSafe.startBroadcast();
         // Queue proposal.
-        _queueProposal(d.governor, p);
+        d.governor.queue(p.targets, p.values, p.calldatas, keccak256(bytes(p.description)));
         vmSafe.stopBroadcast();
 
         // Post-validate on-chain state.
         require(uint8(d.governor.state(proposalId)) == uint8(IGovernor.ProposalState.Queued));
-    }
-
-    function _queueProposal(FundGovernor governor, Proposal memory p) internal {
-        governor.queue(p.targets, p.values, p.calldatas, keccak256(bytes(p.description)));
     }
 }
