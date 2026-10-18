@@ -38,7 +38,8 @@ contract ProposeGallery is Script {
         IGovernor.ProposalState state = d.governor.state(proposalId);
 
         // Logs
-        console.log("proposalId: %s", vmSafe.toString(proposalId));
+        /// @dev PROPOSAL_ID stdout message is consumed by demo.sh.
+        console.log("PROPOSAL_ID=%s", vmSafe.toString(proposalId));
         console.log("proposal state: %s", vmSafe.toString(uint8(state)));
 
         // Post-validate on-chain state.
