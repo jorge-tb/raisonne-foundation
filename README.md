@@ -412,6 +412,23 @@ forge test --match-contract FundGovernor -vvv
 forge test --match-contract FundTreasury -vvv
 ```
 
+The same commands are wrapped in a `Makefile`; `make help` lists every target:
+
+```
+make build              compile the contracts
+make test               run every suite
+make test-unit          run the unit suites only
+make test-integration   run the integration suite only
+make test-invariant     run the invariant suite only
+make fmt                format the sources
+make lint               check formatting without writing
+
+make anvil              start a local node
+make deploy             deploy the system to $RPC_URL
+make demo               run the full lifecycle locally
+make clean              remove build artifacts
+```
+
 Compiler pinned to solc 0.8.37 in `foundry.toml`; sources declare `^0.8.36`, so the pin
 is what fixes the build and the pragma only states the floor. Dependencies: OpenZeppelin
 Contracts v5, OpenZeppelin Contracts Upgradeable v5 (`Initializable`,
