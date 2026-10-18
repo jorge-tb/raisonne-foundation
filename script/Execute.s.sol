@@ -6,7 +6,6 @@ import {console} from "forge-std/console.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {DeploymentRecord, Deployment} from "./libs/DeploymentRecord.sol";
 import {ProposalRecord, Proposal} from "./libs/ProposalRecord.sol";
-import {FundGovernor} from "@raisonne/FundGovernor.sol";
 
 /**
  * @dev Executes a queued proposal once the timelock delay has elapsed. It's permissionless.
@@ -31,14 +30,10 @@ contract Execute is Script {
         require(d.governor.state(proposalId) == IGovernor.ProposalState.Queued, "invalid proposal state");
 
         vmSafe.startBroadcast();
-        _executeProposal(d.governor, p);
+        d.governor.execute(p.targets, p.values, p.calldatas, keccak256(bytes(p.description)));
         vmSafe.stopBroadcast();
 
         // Post-validate on-chain state.
         require(d.governor.state(proposalId) == IGovernor.ProposalState.Executed, "invalid proposal state");
-    }
-
-    function _executeProposal(FundGovernor governor, Proposal memory p) internal {
-        governor.execute(p.targets, p.values, p.calldatas, keccak256(bytes(p.description)));
     }
 }

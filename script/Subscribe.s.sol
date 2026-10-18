@@ -29,16 +29,12 @@ contract Subscribe is Script {
 
         vmSafe.startBroadcast();
         // Subscribe and delegate to itself.
-        _subscribeAndDelegate(d, contribution);
+        d.token.subscribe{value: contribution}();
+        d.token.delegate(msg.sender);
         vmSafe.stopBroadcast();
 
         // Post-validate on-chain state.
         require(d.token.hasSubscribed(msg.sender), "user is not subscribed");
         require(d.token.getVotes(msg.sender) == contribution, "user has invalid voting power");
-    }
-
-    function _subscribeAndDelegate(Deployment memory d, uint256 contribution) internal {
-        d.token.subscribe{value: contribution}();
-        d.token.delegate(msg.sender);
     }
 }
