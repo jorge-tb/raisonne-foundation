@@ -1,11 +1,15 @@
 # Scripts
 
-Foundry scripts that deploy the system and drive it through its full lifecycle: the
-founding round, an acquisition proposal, and minting against the approved gallery.
+## The rule
 
-Each script performs one on-chain step, so the lifecycle can be run, paused, and
-inspected one transaction at a time — the same granularity a real stakeholder would act
-at.
+A script in `script/` does what **one participant can do with one key**. It takes
+a single signer, performs a single action, and works on any network.
+
+Anything that needs several identities at once, or control over time, lives in
+`script/local/` and only works against Anvil.
+
+That boundary is deliberate: it keeps the ordinary scripts honest about what a
+real stakeholder can actually do, and confines the pretending to one directory.
 
 ---
 
@@ -13,95 +17,48 @@ at.
 
 ```
 script/
-├── Deploy.s.sol           deploy and wire the whole system
-├── Subscribe.s.sol        subscribe to the founding round and self-delegate
-├── Finalize.s.sol         forward the completed round to the treasury
-├── ProposeGallery.s.sol   propose approving a gallery root
-├── Vote.s.sol             vote on an active proposal
-├── Queue.s.sol            queue a succeeded proposal on the timelock
-├── Execute.s.sol          execute a queued proposal after the delay
-├── Mint.s.sol             mint an artwork against an approved root
-└── libs/
-    ├── RaisonneDeployer.sol   deployment and role wiring, reusable outside Deploy
-    ├── DeploymentRecord.sol   reads/writes deployments/<chainId>.json
-    └── ProposalRecord.sol     reads/writes proposals/<chainId>/<proposalId>.json
-```
+  Deploy.s.sol           deploy and wire the whole system
+  Subscribe.s.sol        subscribe to the founding round and self-delegate
+  Finalize.s.sol         forward the raised ETH to the treasury
+  ProposeGallery.s.sol   submit an acquisition proposal
+  Vote.s.sol             cast one vote
+  Queue.s.sol            schedule a succeeded proposal on the timelock
+  Execute.s.sol          execute a queued proposal
+  Mint.s.sol             mint one approved artwork against a Merkle proof
 
-`local/` holds work in progress that composes these scripts into a single simulation, and
-is not covered here yet.
+  libs/
+    RaisonneDeployer.sol   deployment and role wiring
+    DeploymentRecord.sol   reads/writes deployments/<chainId>.json
+    ProposalRecord.sol     reads/writes proposals/<chainId>/<proposalId>.json
+  local/
+    demo.sh              the full lifecycle, with the governance delays skipped
+```
 
 ---
 
-## Lifecycle
+## Shared artifacts
 
-```
-Deploy ─► Subscribe (each stakeholder) ─► Finalize
-                                            │
-       ┌────────────────────────────────────┘
-       ▼
-ProposeGallery ─► [voting delay] ─► Vote ─► [voting period] ─► Queue ─► [timelock delay] ─► Execute ─► Mint
-```
+The scripts coordinate through two JSON files rather than through environment
+variables, because the values they pass between each other are too awkward to
+express as strings — and a single character wrong in a proposal's calldata
+produces a different proposal id and a failure that looks unrelated.
 
-Bracketed steps are time that has to pass on-chain. On a live network that is just waiting;
-on Anvil it is `evm_increaseTime` — see *Running locally*.
+**`deployments/<chainId>.json`** — written by `Deploy`, read by everything else.
+Holds the six contract addresses.
 
-Finalizing before proposing is not enforced by the contracts — voting power exists from the
-moment a subscriber delegates — but it is the order the fund is designed around: governance
-acts over capital the treasury actually holds.
+**`proposals/<chainId>/<proposalId>.json`** — written by `ProposeGallery`, read
+by `Queue` and `Execute`. Holds the targets, values, calldatas and description
+that identify the proposal.
 
----
+`Queue` and `Execute` depend on the *format*, not on `ProposeGallery`. Any future
+proposal script writing the same shape works with them unchanged.
 
-## Scripts
-
-| Script | Who can run it | Environment | Requires |
-|---|---|---|---|
-| `Deploy` | anyone; becomes temporary timelock admin | `MIN_DELAY`, `ROUND_DEADLINE_OFFSET`, `STAKEHOLDERS`, `CONTRIBUTIONS`, `VOTING_DELAY`, `VOTING_PERIOD`, `PROPOSAL_THRESHOLD`, `QUORUM_NUMERATOR` | — |
-| `Subscribe` | an allowlisted stakeholder | `CONTRIBUTION` | round `OPEN`, caller's exact agreed amount |
-| `Finalize` | anyone | — | every stakeholder subscribed |
-| `ProposeGallery` | holder of ≥ `PROPOSAL_THRESHOLD` votes | `GALLERY_SIZE` | — |
-| `Vote` | holder of delegated votes at the snapshot | `PROPOSAL_ID` | proposal `Active` |
-| `Queue` | anyone | `PROPOSAL_ID` | proposal `Succeeded` |
-| `Execute` | anyone | `PROPOSAL_ID` | proposal `Queued`, timelock delay elapsed |
-| `Mint` | anyone | `GALLERY_SIZE`, `ARTWORK_INDEX` | gallery root enabled |
-
-### Units
-
-| Variable | Unit |
-|---|---|
-| `MIN_DELAY`, `ROUND_DEADLINE_OFFSET`, `VOTING_DELAY`, `VOTING_PERIOD` | seconds; `Deploy` rejects anything under one day |
-| `CONTRIBUTIONS`, `CONTRIBUTION` | **whole ether** — the scripts multiply by `1 ether` |
-| `PROPOSAL_THRESHOLD` | share wei (shares are minted one-to-one with wei contributed) |
-| `QUORUM_NUMERATOR` | percent of supply at the snapshot, `0`–`100` |
-| `STAKEHOLDERS`, `CONTRIBUTIONS` | comma-separated, same length, same order |
-| `ARTWORK_INDEX` | zero-based position in the sample gallery |
-
-`CONTRIBUTION` for a subscriber must equal their entry in `CONTRIBUTIONS`; `FundShare`
-accepts exact amounts only.
-
----
-
-## How the scripts share state
-
-Scripts run as separate processes, so anything a later step needs is written to disk by
-an earlier one, keyed by chain id.
-
-**`deployments/<chainId>.json`** — written by `Deploy`, read by every other script. Holds
-the six addresses: timelock, governor, treasury implementation, treasury proxy, token,
-registry.
-
-**`proposals/<chainId>/<proposalId>.json`** — written by `ProposeGallery`, read by
-`Queue` and `Execute`. The governor identifies a proposal by hashing its targets, values,
-calldatas, and description, so queuing and executing must replay those exactly; the
-record is what makes that possible without re-deriving the proposal by hand. `Vote` needs
-only the id.
-
-Foundry blocks filesystem access from scripts by default. `foundry.toml` grants
-read-write on `./deployments` and `./proposals` and nothing else.
-
-Records for chain `31337` (Anvil) are git-ignored, since they are regenerated by every
-local run. The directories themselves are kept with `.gitkeep` files, because
-`vm.writeJson` does not create missing directories. Records for a public network are
-meant to be committed.
+Foundry blocks filesystem access from scripts by default; `foundry.toml` grants
+read-write on `./deployments` and `./proposals` and nothing else. Records for
+chain `31337` (Anvil) are git-ignored, since every local run regenerates them,
+but both directories are kept with `.gitkeep` files: `vm.writeJson` does not
+create missing directories. Records for a public network are meant to be
+committed.
 
 ---
 
@@ -109,123 +66,209 @@ meant to be committed.
 
 Every script follows the same shape:
 
-1. **Read** the deployment record (and proposal record where needed).
-2. **Load and validate** environment variables, failing before anything is broadcast.
-3. **Pre-validate** on-chain state — the proposal is in the right state, the caller has the
-   balance or the votes.
+1. **Read** the deployment record, and the proposal record where needed.
+2. **Load and validate** environment variables, failing before anything is
+   broadcast.
+3. **Pre-validate** on-chain state — the proposal is in the right state, the
+   caller has the balance or the votes.
 4. **Broadcast** the one action the script exists for.
-5. **Post-validate** on-chain state — the action had the effect it was supposed to.
+5. **Post-validate** on-chain state — the action had the effect it was supposed
+   to.
 
-Pre-validation turns an opaque revert from deep inside OpenZeppelin into a message that
-names the actual problem. Post-validation means a script that exits cleanly has proven its
-own outcome, not merely sent a transaction.
+Pre-validation turns an opaque revert from deep inside OpenZeppelin into a
+message that names the actual problem. Post-validation means a script that exits
+cleanly has proven its own outcome, not merely sent a transaction.
 
-The sender is the account behind `--private-key` (or `--account`); scripts read it as
-`msg.sender` for balance and voting-power checks.
-
-### Deployment sequence
-
-`RaisonneDeployer` deploys in this order, all from the deployer:
-
-1. `TimelockController`, empty proposer and executor sets, deployer as admin.
-2. `FundTreasury` implementation, then an `ERC1967Proxy` initialised with the **deployer**
-   as owner.
-3. `FundShare`, with the deadline computed as `block.timestamp + ROUND_DEADLINE_OFFSET`.
-4. `FundGovernor`.
-5. `ArtRegistry`, owned by the timelock, minting to the treasury proxy.
-6. `initializeRegistry(registry)` on the treasury, called directly by the deployer.
-7. Treasury ownership transferred to the timelock.
-8. `PROPOSER_ROLE` and `CANCELLER_ROLE` to the governor, `EXECUTOR_ROLE` to `address(0)`,
-   then the deployer renounces `DEFAULT_ADMIN_ROLE`.
-
-Initialising the treasury with the deployer as owner, rather than the timelock, lets the
-registry wiring happen in the deployment itself instead of needing a governance proposal
-before the fund can do anything. The treasury holds nothing at that point, and `Deploy`'s
-post-validation asserts that the deployer ends with no role and the timelock owns the
-treasury.
-
-The cost is a window: each step is a separate transaction, so if a broadcast stops
-partway the deployer is left owning the treasury proxy and possibly still holding
-timelock admin. `Deploy` writes the deployment record only after its post-validation
-passes, so the other scripts will never pick up a half-wired deployment — but anyone
-adopting one by hand should check `owner()` on the treasury proxy and
-`DEFAULT_ADMIN_ROLE` on the timelock first.
-
-`Deploy` needs `via_ir = true`: `RaisonneDeployer.deploy` exceeds the legacy pipeline's
-stack limit.
+The signer is whatever `--private-key` (or `--account`) provides; scripts read it
+as `msg.sender` for balance and voting-power checks.
 
 ---
 
-## Running locally
+## Running the system
 
-Start Anvil in its own terminal:
+### Deploy
 
-```bash
-anvil
+```
+make anvil        # in another terminal
+make deploy
 ```
 
-The commands below use Anvil's first two default accounts, whose keys are public and
-printed at startup. Never use them on a real network.
+`make deploy` targets `$RPC_URL` (default `http://localhost:8545`) and signs
+with `$DEPLOYER_KEY` (default: Anvil's first account).
 
-```bash
-RPC=http://127.0.0.1:8545
-A0=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
-K0=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-A1=0x70997970C51812dc3A010C7d01b50e0d17dc79C8
-K1=0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+`Deploy` runs `libs/RaisonneDeployer.sol`, which deploys and wires the system in
+this order:
 
-run()  { forge script "script/$1.s.sol" --rpc-url $RPC --private-key "$2" --broadcast; }
-warp() { cast rpc --rpc-url $RPC evm_increaseTime "$1" && cast rpc --rpc-url $RPC evm_mine; }
+1. `TimelockController`, empty proposer and executor sets, deployer as admin.
+2. `FundTreasury` implementation, then an `ERC1967Proxy` initialised with the
+   **deployer** as owner.
+3. `FundShare`, with the deadline at `block.timestamp + ROUND_DEADLINE_OFFSET`.
+4. `FundGovernor`.
+5. `ArtRegistry`, owned by the timelock, minting to the treasury proxy.
+6. `initializeRegistry(registry)` on the treasury, then treasury ownership to the
+   timelock.
+7. `PROPOSER_ROLE` and `CANCELLER_ROLE` to the governor, `EXECUTOR_ROLE` to
+   `address(0)`, then the deployer renounces `DEFAULT_ADMIN_ROLE`.
+
+It then asserts the end state — no role left on the deployer, timelock owning
+the treasury, registry wired — before writing the deployments file.
+
+Owning the treasury briefly lets the registry be wired during deployment rather
+than by a first governance proposal. The cost is a window: each step is a
+separate transaction, so if a broadcast stops partway the deployer is left
+owning the treasury proxy and possibly still holding timelock admin. Because the
+record is written only after post-validation passes, the other scripts will
+never pick up a half-wired deployment — but anyone adopting one by hand should
+check `owner()` on the treasury proxy and `DEFAULT_ADMIN_ROLE` on the timelock
+first.
+
+`RaisonneDeployer` is why the project builds with `via_ir = true`: its one
+function exceeds the legacy pipeline's stack limit.
+
+### Founding round
+
+Each stakeholder subscribes with their own key, sending exactly the amount
+agreed for them in `CONTRIBUTIONS` — `FundShare` rejects anything else:
+
+```
+CONTRIBUTION=1 forge script script/Subscribe.s.sol \
+  --rpc-url $RPC_URL --broadcast --private-key $KEY
 ```
 
-Deploy with two stakeholders contributing 60 and 40 ETH, one-day delays, a three-day
-voting period, and a 4% quorum:
+Once every stakeholder has subscribed, anyone may close the round:
 
-```bash
-export MIN_DELAY=86400 ROUND_DEADLINE_OFFSET=604800 \
-       STAKEHOLDERS="$A0,$A1" CONTRIBUTIONS="60,40" \
-       VOTING_DELAY=86400 VOTING_PERIOD=259200 \
-       PROPOSAL_THRESHOLD=0 QUORUM_NUMERATOR=4
-run Deploy $K0
+```
+forge script script/Finalize.s.sol --rpc-url $RPC_URL --broadcast --private-key $KEY
 ```
 
-Founding round:
+### Governance
 
-```bash
-CONTRIBUTION=60 run Subscribe $K0
-CONTRIBUTION=40 run Subscribe $K1
-run Finalize $K0
+```
+forge script script/ProposeGallery.s.sol ...          # logs PROPOSAL_ID=<id>
+# wait out votingDelay
+PROPOSAL_ID=<id> forge script script/Vote.s.sol ...   # once per voter
+# wait out votingPeriod
+PROPOSAL_ID=<id> forge script script/Queue.s.sol ...
+# wait out the timelock's minDelay
+PROPOSAL_ID=<id> forge script script/Execute.s.sol ...
 ```
 
-Acquisition proposal — `ProposeGallery` logs the `proposalId`; it is also the file name
-under `proposals/31337/`:
+On Anvil, the waits are:
 
-```bash
-export GALLERY_SIZE=4
-run ProposeGallery $K0
-export PROPOSAL_ID=<proposalId from the log>
-
-warp 86401          # past the voting delay
-run Vote $K0
-run Vote $K1
-
-warp 259201         # past the voting period
-run Queue $K0
-
-warp 86401          # past the timelock delay
-run Execute $K0
+```
+cast rpc evm_increaseTime <seconds> --rpc-url $RPC_URL
+cast rpc evm_mine --rpc-url $RPC_URL
 ```
 
-Mint the third artwork of the approved gallery:
+### Minting
 
-```bash
-ARTWORK_INDEX=2 run Mint $K0
+Once the gallery root is enabled:
+
+```
+ARTWORK_INDEX=0 forge script script/Mint.s.sol ...
 ```
 
-`Mint` logs `ipfs://CID-3` as the token URI and the treasury proxy as its owner.
+`ARTWORK_INDEX` is zero-based and must be below `GALLERY_SIZE`. The token URI is
+`ipfs://CID-<index + 1>` and the owner is the treasury proxy.
 
-To start over, restart Anvil. The old `deployments/31337.json` is simply overwritten by
-the next `Deploy`; stale files under `proposals/31337/` can be deleted.
+---
+
+## The demo
+
+```
+make anvil        # in another terminal
+make deploy
+make demo
+```
+
+`script/local/demo.sh` runs everything after deployment against Anvil —
+subscription, finalization, proposal, voting, queueing, execution and minting
+every artwork in the gallery — skipping the governance delays. It aborts if
+`deployments/31337.json` is missing, so `make deploy` has to come first.
+
+```
+make deploy │ make demo
+            │
+  Deploy ───┼─► Subscribe (each stakeholder) ─► Finalize
+            │                                     │
+            │   ┌─────────────────────────────────┘
+            │   ▼
+            │   ProposeGallery ─► [voting delay] ─► Vote (each stakeholder)
+            │                                         │
+            │   ┌─────────────────────────────────────┘
+            │   ▼
+            │   [voting period] ─► Queue ─► [timelock delay] ─► Execute ─► Mint (each artwork)
+```
+
+Bracketed steps are time that has to pass on-chain. On a live network that is
+waiting; in the demo each one is a single `evm_increaseTime` + `evm_mine`, sized
+from the governor's `votingDelay()` and `votingPeriod()` and the timelock's
+`getMinDelay()`.
+
+**It is a shell script rather than a Forge script for a structural reason.** A
+Forge script collects its transactions during a local simulation pass and
+broadcasts them all after `run()` returns. Time jumps made inside that pass
+therefore happen *before* any transaction is sent, so they cannot land between
+stages — the simulation sees a valid sequence and the chain receives a batch
+that reverts. Driving each stage as a separate `forge script` process is the
+simplest arrangement where each batch lands before the next jump.
+
+The script reads `STAKEHOLDERS_KEYS`, `CONTRIBUTIONS` and `GALLERY_SIZE` from
+`.env`, uses the first key as the proposer, discovers the proposal id from
+`ProposeGallery`'s logged `PROPOSAL_ID=` line, and finishes by reporting how
+many artworks the treasury holds and its ETH balance.
+
+It requires `jq`.
+
+To start over, restart Anvil and run `make deploy` again. The old
+`deployments/31337.json` is overwritten; stale files under `proposals/31337/`
+can be deleted.
+
+---
+
+## Environment
+
+Create a `.env` at the repository root. It is git-ignored; `forge script` loads
+it automatically and `demo.sh` sources it. For a local run, Anvil's published
+default accounts are enough:
+
+```
+MIN_DELAY=86400
+ROUND_DEADLINE_OFFSET=604800
+STAKEHOLDERS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+STAKEHOLDERS_KEYS=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80,0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+CONTRIBUTIONS=60,40
+VOTING_DELAY=86400
+VOTING_PERIOD=259200
+PROPOSAL_THRESHOLD=0
+QUORUM_NUMERATOR=4
+GALLERY_SIZE=4
+```
+
+| Variable | Meaning |
+|---|---|
+| `MIN_DELAY` | Timelock delay, in seconds (at least one day) |
+| `ROUND_DEADLINE_OFFSET` | Subscription window length, in seconds from deployment (at least one day) |
+| `STAKEHOLDERS` | Allowlisted addresses, comma-separated |
+| `STAKEHOLDERS_KEYS` | Their private keys, same order (local only; the first also proposes) |
+| `CONTRIBUTIONS` | Agreed contributions in whole ether, same order |
+| `VOTING_DELAY` | Seconds between proposal creation and the snapshot (at least one day) |
+| `VOTING_PERIOD` | Seconds the vote stays open (at least one day) |
+| `PROPOSAL_THRESHOLD` | Voting power required to propose, in share wei |
+| `QUORUM_NUMERATOR` | Quorum as a percentage of past total supply, `0`–`100` |
+| `GALLERY_SIZE` | Number of sample artworks to generate |
+
+Per-invocation variables — `CONTRIBUTION`, `PROPOSAL_ID`, `ARTWORK_INDEX` — are
+passed on the command line, as in the examples above.
+
+`CONTRIBUTIONS` and `CONTRIBUTION` are in whole ether and multiplied by
+`1 ether` in the scripts, so the file stays readable — and so a contribution of
+0.5 ETH cannot be expressed.
+
+Never put a key that controls real funds in `.env`. For testnet deployments use
+`cast wallet import` and pass `--account` to `forge script` instead of
+`--private-key`; note that `make deploy` always signs with `--private-key`, so
+run `Deploy` directly in that case.
 
 ---
 
@@ -234,11 +277,11 @@ the next `Deploy`; stale files under `proposals/31337/` can be deleted.
 These scripts drive a demonstration, not a production acquisition:
 
 - **Sample gallery only.** `ProposeGallery` and `Mint` build the tree from
-  `test/helpers/SampleGallery.sol` — placeholder CIDs (`CID-1`, `CID-2`, …) regenerated
-  from `GALLERY_SIZE` on every run. There is no path yet for a curated tree loaded from a
-  file.
-- **No payment leg.** The proposal approves the root only; the README's acquisition
-  lifecycle pairs it with a treasury `pay` to the seller.
+  `test/helpers/SampleGallery.sol` — placeholder CIDs (`CID-1`, `CID-2`, …)
+  regenerated from `GALLERY_SIZE` on every run. There is no path yet for a
+  curated tree loaded from a file.
+- **No payment leg.** The proposal approves the root only; the README's
+  acquisition lifecycle pairs it with a treasury `pay` to the seller.
 - **`Vote` always votes For.** There is no way yet to vote Against or Abstain.
-- **Fixed proposal description.** Proposing the same gallery size twice yields the same
-  proposal id and reverts.
+- **Fixed proposal description.** Proposing the same gallery size twice yields
+  the same proposal id and reverts.
