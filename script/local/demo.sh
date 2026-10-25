@@ -14,7 +14,7 @@
 #   make deploy
 #   make demo
 #
-# Requires .env to define STAKEHOLDERS_KEYS, CONTRIBUTIONS and GALLERY_FILENAME.
+# Requires .env to define STAKEHOLDERS_KEYS, CONTRIBUTIONS_WEI and GALLERY_FILENAME.
 # ProposeGallery.s.sol must log a line of the form PROPOSAL_ID=<id>.
 
 set -euo pipefail
@@ -39,10 +39,10 @@ set +a
 }
 
 IFS=',' read -ra KEYS <<< "$STAKEHOLDERS_KEYS"
-IFS=',' read -ra AMOUNTS <<< "$CONTRIBUTIONS"
+IFS=',' read -ra AMOUNTS <<< "$CONTRIBUTIONS_WEI"
 
 [[ ${#KEYS[@]} -eq ${#AMOUNTS[@]} ]] || {
-  echo "error: STAKEHOLDERS_KEYS and CONTRIBUTIONS have different lengths" >&2
+  echo "error: STAKEHOLDERS_KEYS and CONTRIBUTIONS_WEI have different lengths" >&2
   exit 1
 }
 
@@ -91,7 +91,7 @@ TREASURY=$(deployed treasuryProxy)
 echo "==> Subscribing ${#KEYS[@]} stakeholders"
 for i in "${!KEYS[@]}"; do
   echo "  stakeholder ${i}"
-  CONTRIBUTION="${AMOUNTS[$i]}" run_quiet script/Subscribe.s.sol --private-key "${KEYS[$i]}"
+  CONTRIBUTION_WEI="${AMOUNTS[$i]}" run_quiet script/Subscribe.s.sol --private-key "${KEYS[$i]}"
 done
 
 echo "==> Finalizing the founding round"
