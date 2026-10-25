@@ -1,0 +1,12 @@
+{
+  "calldatas": [
+    "0x596fad1fa44f697ab7918db0d018cac2681465b9d5771c3af63e57ede0a5da9bc072a92c"
+  ],
+  "description": "Acquisition 002 - corrects tokens 6 and 10 from Acquisition 001, whose metadata was committed with unresolved image references. The works are Willem van de Velde II’s Encounter during the Battle of Kijkduin and Jacob van Loo’s Amorous Couple, reissued as tokens 11 and 12. Tree published at ipfs://bafkreifrg2nslhcqnocdsdrprblekk5vdy3korpe2wxdfct5q7gj35m42i; rebuild the root and compare before voting.",
+  "targets": [
+    "0x62Fd289eB04ACE835c01748968a91519FBd19c49"
+  ],
+  "values": [
+    0
+  ]
+}
