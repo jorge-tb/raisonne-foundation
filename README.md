@@ -6,6 +6,13 @@ deployer — and whose cap table is provably backed by capital actually contribu
 
 Capstone project for the Alchemy University Ethereum bootcamp.
 
+The system is live on Sepolia: governor at
+[`0xe2b54dC53bB76Aa9F102A1E882e5D8F8Fc999f64`](https://sepolia.etherscan.io/address/0xe2b54dC53bB76Aa9F102A1E882e5D8F8Fc999f64),
+registry at
+[`0x62Fd289eB04ACE835c01748968a91519FBd19c49`](https://sepolia.etherscan.io/address/0x62Fd289eB04ACE835c01748968a91519FBd19c49).
+The remaining addresses and a transaction-by-transaction walkthrough of its lifecycle are
+in [`DEPLOYMENTS.md`](DEPLOYMENTS.md).
+
 ---
 
 ## The problem
@@ -118,6 +125,16 @@ implementation as an address sink rather than the proxy. Rewiring it is the next
 ---
 
 ## Current status
+
+All four contracts are implemented and deployed. On Sepolia the system has completed a
+founding round, executed two acquisition proposals, and minted twelve artworks to the
+treasury. Ten resolve to complete metadata; the other two were pinned without an image,
+and the second acquisition reissued both works under new token ids — see
+[`DEPLOYMENTS.md`](DEPLOYMENTS.md).
+
+`forge test` runs 105 tests: 81 unit, 18 integration, and 6 in the invariant suite —
+five properties and a call summary that only reports how often the handler hit each
+function. Fuzzed cases sit inside the unit suites rather than in a separate one.
 
 **`ArtRegistry`** — complete, 13 tests. Constructor validation and ownership wiring,
 access control on both gallery functions, gallery lifecycle guards, proof verification,
@@ -238,7 +255,7 @@ is a fraction of supply at the snapshot rather than an absolute figure, so it st
 meaningful regardless of how large the round was.
 
 **The governor owns nothing and holds nothing.** Every payload executes as the timelock:
-the timelock is the registry's `Ownable` owner and will be the treasury's controller.
+the timelock is the `Ownable` owner of both the registry and the treasury.
 The governor's only privilege is the right to queue into it.
 
 **Execution is open, proposal is not.** `EXECUTOR_ROLE` is granted to `address(0)`, so
@@ -377,6 +394,16 @@ pinning; not solved by it.
 **Proofs are generated off-chain.** The full tree must remain published, or minting for
 that batch becomes impossible. Trees are committed to the repository and pinned.
 
+**Proposal verification depends on the published gallery file.** A voter checks a root
+by rebuilding it from the tree the proposal description points at. For the Sepolia
+acquisition that is the gallery file pinned to IPFS; if it stops being available, the
+root in the calldata can no longer be checked against anything, and voters are back to
+trusting a 32-byte hash.
+
+**The Sepolia images are not all public domain.** The Rijksmuseum works are. The
+Mauritshuis images are used under the museum's non-commercial terms, which a testnet
+deployment satisfies and a fund holding these tokens for value would not.
+
 **Payment precedes registration.** Funds leave at proposal execution, while the NFT is
 minted whenever someone calls `mintArtwork`. The treasury can therefore have paid for a
 piece not yet on its books. This is deliberate: the purchase happens off-chain under a
@@ -446,6 +473,11 @@ consequence for tests: under via-IR the optimizer may reuse a `block.timestamp` 
 across a `vm.warp`, so tests that compute a time after warping read it through
 `vm.getBlockTimestamp()` instead.
 
+Sepolia deployments require `--skip-simulation` and `--slow`. `forge script`'s gas
+estimation under-reports for large contract deployments, and the transactions it sends
+with those limits run out of gas. `--slow` sends each transaction only after the previous
+one is confirmed.
+
 Deployment and interaction scripts live in `script/` — see *Deploy and interact* below.
 
 ---
@@ -459,7 +491,8 @@ script: `Deploy`, `Subscribe`, `Finalize`, `ProposeGallery`, `Vote`, `Queue`, `E
 broadcast.
 
 The whole path — deploy, fill the round, approve a gallery through governance, mint into
-the treasury — has been run end to end against a local Anvil node.
+the treasury — has been run end to end against a local Anvil node and on Sepolia. The
+Sepolia run is recorded in [`DEPLOYMENTS.md`](DEPLOYMENTS.md).
 
 Environment variables, units, the deployment sequence, and a step-by-step Anvil
 walkthrough are in [`script/README.md`](script/README.md).
