@@ -16,25 +16,22 @@ contract Subscribe is Script {
         Deployment memory d = DeploymentRecord.read(block.chainid);
 
         // Load environment variables.
-        uint256 contribution = vm.envUint("CONTRIBUTION");
+        uint256 contributionWei = vm.envUint("CONTRIBUTION_WEI");
 
         // Validate environment variables.
-        require(contribution > 0, "contribution should be greater than zero");
-
-        // Pre-process environment variables.
-        contribution *= 1 ether;
+        require(contributionWei > 0, "contribution should be greater than zero");
 
         // Pre-validate on-chain state.
-        require(msg.sender.balance >= contribution, "caller has not enough balance");
+        require(msg.sender.balance >= contributionWei, "caller has not enough balance");
 
         vmSafe.startBroadcast();
         // Subscribe and delegate to itself.
-        d.token.subscribe{value: contribution}();
+        d.token.subscribe{value: contributionWei}();
         d.token.delegate(msg.sender);
         vmSafe.stopBroadcast();
 
         // Post-validate on-chain state.
         require(d.token.hasSubscribed(msg.sender), "user is not subscribed");
-        require(d.token.getVotes(msg.sender) == contribution, "user has invalid voting power");
+        require(d.token.getVotes(msg.sender) == contributionWei, "user has invalid voting power");
     }
 }

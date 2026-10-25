@@ -18,7 +18,7 @@ contract Deploy is Script {
         uint256 minDelay = vmSafe.envUint("MIN_DELAY");
         uint48 roundDeadlineOffset = uint48(vmSafe.envUint("ROUND_DEADLINE_OFFSET"));
         address[] memory stakeholders = vmSafe.envAddress("STAKEHOLDERS", ",");
-        uint256[] memory contributions = vmSafe.envUint("CONTRIBUTIONS", ",");
+        uint256[] memory contributionsWei = vmSafe.envUint("CONTRIBUTIONS_WEI", ",");
         uint48 votingDelay = uint48(vmSafe.envUint("VOTING_DELAY"));
         uint32 votingPeriod = uint32(vmSafe.envUint("VOTING_PERIOD"));
         uint256 proposalThreshold = vmSafe.envUint("PROPOSAL_THRESHOLD");
@@ -27,15 +27,10 @@ contract Deploy is Script {
         // Validate environment variables.
         require(minDelay >= 1 days);
         require(roundDeadlineOffset >= 1 days);
-        require(stakeholders.length == contributions.length);
+        require(stakeholders.length == contributionsWei.length);
         require(votingDelay >= 1 days);
         require(votingPeriod >= 1 days);
         require(quorumNumerator >= 0 && quorumNumerator <= 100);
-
-        // Pre-process environment variables.
-        for (uint256 i = 0; i < contributions.length; i++) {
-            contributions[i] = contributions[i] * 1 ether;
-        }
 
         vmSafe.startBroadcast();
 
@@ -43,7 +38,7 @@ contract Deploy is Script {
             minDelay,
             roundDeadlineOffset,
             stakeholders,
-            contributions,
+            contributionsWei,
             votingDelay,
             votingPeriod,
             proposalThreshold,
