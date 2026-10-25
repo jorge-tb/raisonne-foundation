@@ -21,18 +21,16 @@ contract ProposeGallery is Script {
         Deployment memory d = DeploymentRecord.read(block.chainid);
 
         // Load environment variables.
-        uint256 gallerySize = vmSafe.envUint("GALLERY_SIZE");
+        string memory filename = vmSafe.envString("GALLERY_FILENAME");
+        string memory description = vmSafe.envString("GALLERY_DESCRIPTION");
 
-        // Validate environment variables.
-        require(gallerySize > 0, "gallery size must be greater than 0");
-
-        // Create gallery root.
-        Artwork[] memory artworks = SampleGallery.create(gallerySize);
+        // Load gallery
+        Artwork[] memory artworks = SampleGallery.load(string.concat(_galleryPath(filename)));
         bytes32 galleryRoot = SampleGallery.root(artworks);
 
         vmSafe.startBroadcast();
         // Create the proposal.
-        uint256 proposalId = _createProposal(d, galleryRoot, "Add sample gallery");
+        uint256 proposalId = _createProposal(d, galleryRoot, description);
         vmSafe.stopBroadcast();
 
         IGovernor.ProposalState state = d.governor.state(proposalId);
@@ -43,7 +41,6 @@ contract ProposeGallery is Script {
         console.log("proposal state: %s", vmSafe.toString(uint8(state)));
 
         // Post-validate on-chain state.
-        require(proposalId != 0, "proposal not created");
         require(state == IGovernor.ProposalState.Pending, "invalid proposal state");
     }
 
@@ -61,5 +58,9 @@ contract ProposeGallery is Script {
         proposalId = d.governor.propose(targets, values, calldatas, description);
 
         ProposalRecord.write(block.chainid, proposalId, targets, values, calldatas, description);
+    }
+
+    function _galleryPath(string memory filename) private pure returns (string memory path) {
+        path = string.concat("./galleries/", filename, ".json");
     }
 }
