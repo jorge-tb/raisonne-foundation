@@ -25,11 +25,11 @@ contract Deploy is Script {
         uint256 quorumNumerator = vmSafe.envUint("QUORUM_NUMERATOR");
 
         // Validate environment variables.
-        require(minDelay >= 1 days);
-        require(roundDeadlineOffset >= 1 days);
+        require(minDelay > 0);
+        require(roundDeadlineOffset > 0);
         require(stakeholders.length == contributionsWei.length);
-        require(votingDelay >= 1 days);
-        require(votingPeriod >= 1 days);
+        require(votingDelay > 0);
+        require(votingPeriod > 0);
         require(quorumNumerator >= 0 && quorumNumerator <= 100);
 
         vmSafe.startBroadcast();
