@@ -4,19 +4,28 @@ pragma solidity ^0.8.36;
 import {VmSafe} from "forge-std/Vm.sol";
 import {Merkle} from "murky/Merkle.sol";
 
+/**
+ * @dev Artwork struct requires its properties to be defined in alphabetical order to avoid misaligned
+ * assignment when decoding it from JSON file.
+ */
 struct Artwork {
-    uint256 tokenId;
     string cId;
+    uint256 tokenId;
 }
 
 library SampleGallery {
     address internal constant VM_ADDRESS = address(uint160(uint256(keccak256("hevm cheat code"))));
     VmSafe internal constant vmSafe = VmSafe(VM_ADDRESS);
 
+    function load(string memory path) internal view returns (Artwork[] memory artworks) {
+        string memory json = vmSafe.readFile(path);
+        artworks = abi.decode(vmSafe.parseJson(json), (Artwork[]));
+    }
+
     function create(uint256 n) internal pure returns (Artwork[] memory artworks) {
         artworks = new Artwork[](n);
         for (uint256 i = 0; i < n; i++) {
-            artworks[i] = Artwork(i + 1, string.concat("CID-", vmSafe.toString(i + 1)));
+            artworks[i] = Artwork(string.concat("CID-", vmSafe.toString(i + 1)), i + 1);
         }
     }
 
