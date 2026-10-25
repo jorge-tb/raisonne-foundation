@@ -4,10 +4,12 @@ Findings from reviewing this codebase against its own stated guarantees. Written
 contracts land, so the list grows and closes over time rather than arriving as a single
 report.
 
-**Scope:** `src/ArtRegistry.sol`, `src/FundShare.sol`, `src/FundGovernor.sol`, and the
-role wiring the tests deploy around `TimelockController`
-**Out of scope:** `src/FundTreasury.sol`, a placeholder with no logic to review
-**Compiler:** solc 0.8.37 · OpenZeppelin Contracts v5
+**Scope:** `src/ArtRegistry.sol`, `src/FundShare.sol`, `src/FundGovernor.sol`,
+`src/FundTreasury.sol`, the deployment sequence in `script/libs/RaisonneDeployer.sol` and
+`script/Deploy.s.sol`, and the Sepolia deployment recorded in `DEPLOYMENTS.md`
+**Out of scope:** OpenZeppelin library code, except where a finding depends on its behaviour
+**Compiler:** solc 0.8.37, via-IR, optimizer at 200 runs · OpenZeppelin Contracts v5 and
+Contracts Upgradeable v5
 
 | ID | Severity | Title | Status |
 |---|---|---|---|
@@ -18,9 +20,43 @@ role wiring the tests deploy around `TimelockController`
 | L-02 | Low | `ERC20Votes` clock mode is unset | Fixed |
 | L-03 | Low | Deploy script is the unmodified Foundry template | Fixed |
 | L-04 | Low | Unused `FundTreasury` import in `ArtRegistry` | Open |
+| L-05 | Low | Deployment leaves a trust window whose effects can outlast it | Acknowledged |
 | I-01 | Info | Revoked gallery roots can be re-approved | Open |
 | I-02 | Info | Approved roots cannot be enumerated on-chain | Acknowledged |
 | I-03 | Info | Constructor loop is unbounded | Acknowledged |
+| I-04 | Info | Refunds push ETH to the recipient | Acknowledged |
+| I-05 | Info | Six `forge lint` warnings are suppressed | Acknowledged |
+| I-06 | Info | Under via-IR, a test's `block.timestamp` read can move across `vm.warp` | Mitigated |
+| I-07 | Info | Some Sepolia images are licensed for non-commercial use only | Acknowledged |
+
+---
+
+## `FundTreasury` review
+
+`FundTreasury` produced no finding above Low. What was checked, and what holds:
+
+- **Implementation cannot be initialised.** The constructor calls `_disableInitializers()`.
+  On Sepolia the implementation's `Initializable` slot holds `type(uint64).max`.
+- **Proxy initialisation cannot be front-run.** `initialize(deployer)` runs in the
+  `ERC1967Proxy` constructor's calldata, in the same transaction that creates the proxy.
+- **Each initialiser runs once.** `initialize` is `initializer` (version 1) and
+  `initializeRegistry` is `reinitializer(2)` and `onlyOwner`. Both are consumed on Sepolia
+  (`Initialized(1)` at block 11958429, `Initialized(2)` at block 11958433).
+- **Storage location matches ERC-7201.** `FUNDTREASURY_STORAGE` equals
+  `keccak256(abi.encode(uint256(keccak256("raisonne.storage.FundTreasury")) - 1)) & ~bytes32(uint256(0xff))`,
+  checked with `cast index-erc7201`. `OwnableUpgradeable` and `Initializable` keep their own
+  namespaces in v5, so nothing shares a slot.
+- **Upgrades take a passed proposal.** `_authorizeUpgrade` is `onlyOwner` and the owner is
+  the timelock. OpenZeppelin's `upgradeToAndCall` also checks `proxiableUUID` on the new
+  implementation, so an upgrade to a contract that is not UUPS-compatible reverts rather
+  than bricking the proxy.
+- **Value leaves only through the owner.** `pay` and `sell` are `onlyOwner`. Both make an
+  external call to an arbitrary recipient before emitting, but a re-entrant call cannot pass
+  `onlyOwner`, and neither function has state left to corrupt after the call.
+- **ETH transfer paths fail loudly.** `pay` checks the balance and reverts on a failed call.
+  `sell` uses `safeTransferFrom`, so a recipient that cannot hold ERC-721s reverts the sale.
+
+The deployment around it is covered by L-05.
 
 ---
 
@@ -237,7 +273,8 @@ repository's own claims about being buildable and testable.
 (commit `c95f8664c74d205addf1af771c592f57ae7fce33`), which deploys and wires the whole
 system through `script/libs/RaisonneDeployer.sol`, declares MIT, and asserts the final
 role and ownership layout before writing the deployment record. Seven further scripts
-cover the lifecycle after deployment; the full path has been run end to end on Anvil.
+cover the lifecycle after deployment; the full path has been run end to end on Anvil and
+on Sepolia.
 
 ---
 
@@ -249,6 +286,84 @@ cover the lifecycle after deployment; the full path has been run end to end on A
 The treasury is held as a plain address, so the imported type is never used. Remove the
 import, or type the immutable if the interface is intended to matter once `FundTreasury`
 is implemented.
+
+`FundTreasury` is now implemented and imports `ArtRegistry` in turn, so the two files
+import each other. The import in `ArtRegistry` is still unused. Removing it also removes
+the cycle.
+
+---
+
+## L-05 · Deployment leaves a trust window whose effects can outlast it
+
+**Severity:** Low
+**Location:** `script/libs/RaisonneDeployer.sol`; `FundTreasury.initialize` and
+`initializeRegistry`
+**Status:** Acknowledged — verified clean on Sepolia
+
+### Description
+
+`ArtRegistry`'s constructor takes the treasury address, and the treasury needs the
+registry's address: a cycle. The deployment breaks it in two steps. The proxy is created
+with `initialize(deployer)`, so ownership is set in the same transaction and cannot be
+claimed by anyone else. The deployer then calls `initializeRegistry(registry)` and transfers
+ownership to the timelock.
+
+From the proxy's creation until `transferOwnership`, the deployer owns the treasury. From
+the timelock's creation until `renounceRole`, the deployer also holds `DEFAULT_ADMIN_ROLE`
+on the timelock. On Sepolia the window spans blocks 11958427 to 11958438, twelve
+transactions.
+
+The two alternatives were rejected for reasons given in the README. Predicting the
+treasury address with CREATE2 makes deployment depend on a salt and a matching bytecode
+hash to state a relationship that a second transaction states directly. Wiring the
+registry by a first governance proposal leaves the treasury without a registry until a
+full voting cycle completes, before the fund can do anything else.
+
+### Impact
+
+The window closes, but some things done inside it do not:
+
+- an upgrade of the proxy keeps its implementation after ownership moves to the timelock
+- `initializeRegistry` with a different registry consumes `reinitializer(2)`, so the wrong
+  wiring is permanent
+- a role the deployer grants itself on the timelock, such as `PROPOSER_ROLE`, survives the
+  deployer renouncing admin, and so does an operation it schedules with that role
+
+`Deploy.s.sol` asserts what the sequence set: deployer not admin, governor holding proposer
+and canceller, open execution, timelock owning the treasury, registry wired. It does not
+assert the absence of anything else. It cannot usefully do so, since a deployer intending
+to misuse the window would not run the assertions either. The guarantee for anyone outside
+the deployer comes from the event history, not from the script.
+
+Rated Low rather than Informational because the persistent effects are not covered by the
+script's own checks, so a reviewer has to go to the chain. Not higher because every action
+needs the deployer's key, the deployer already chooses the bytecode — so the window adds
+no capability that writing the code does not — and every action leaves an event.
+
+### Verification on Sepolia
+
+- `Upgraded`: once, at block 11958429, in the proxy constructor, to the verified
+  implementation `0x7F1e7322Ff74DdF244a0443F33F8bE380F27f0Ca`.
+- `OwnershipTransferred` on the proxy: to the deployer at block 11958429, then to the
+  timelock at block 11958434.
+- `RoleGranted` on the timelock: exactly the five expected — admin to the timelock itself
+  and to the deployer, proposer and canceller to the governor, executor to `address(0)`.
+- `RoleRevoked`: the deployer's admin role, at block 11958438.
+- `CallScheduled`: two, both from the governor's `queue` transactions for the two
+  acquisitions.
+
+### Aborted deployments
+
+Two earlier `Deploy` runs stopped after six transactions, before any wiring. Their
+contracts remain on Sepolia: two treasury proxies owned by the deployer, and two
+timelocks with the deployer still admin. Nothing references them, and the canonical
+addresses are those in `deployments/11155111.json`. They are the window's failure mode
+— a sequence stopped partway — occurring harmlessly.
+
+| Run | `TimelockController` | `ERC1967Proxy` (treasury) |
+|---|---|---|
+| `run-1792533326024` | `0xcb485610d526bf4c8995046d0f7aabc580a89a75` | `0xa1a7631ef313bd18bbc74de78a51cb569b82940d` |
+| `run-1792534356454` | `0x62ba611733fa204f1fc1802a5b6070a86ec85eec` | `0x1f2cad795903c462aaafbb73b222f4aa9b6d4042` |
 
 ---
 
@@ -283,3 +398,77 @@ The allowlist loop is correctly unchecked-incremented and bounded in practice by
 gas limit. The practical maximum stakeholder count should be stated, since exceeding it
 makes the contract undeployable rather than merely expensive.
 
+---
+
+## I-04 · Refunds push ETH to the recipient
+
+**Status:** Acknowledged
+
+`refund(to)` sends the contribution with a low-level call and reverts if it fails. A
+stakeholder whose recipient rejects ETH cannot recover their contribution through it.
+
+The `to` parameter is the mitigation. Authorisation stays on `msg.sender`, so a
+stakeholder whose own address cannot receive ETH — a contract without a payable path, for
+instance — can name any address that can. The residual case is a stakeholder that controls
+no address able to receive ETH at all, which is why this is Informational. A pull pattern
+would not help: the failure is in the recipient, not in the ordering, and a later
+withdrawal to the same recipient fails the same way. The revert is atomic, so a failed
+refund loses nothing and can be retried with a different `to`.
+
+---
+
+## I-05 · Six `forge lint` warnings are suppressed
+
+**Status:** Acknowledged
+
+Each is suppressed with `forge-lint: disable-next-line` at the site. Recorded here so the
+reasoning lives somewhere other than a comment.
+
+| Lint | Suppressed at | Why it does not apply |
+|---|---|---|
+| `block-timestamp` | `src/FundShare.sol:54`, constructor | Checks the deadline is in the future at deployment. A proposer can shift the timestamp by seconds; the window is days. |
+| `block-timestamp` | `src/FundShare.sol:147`, `roundState()` | Same reasoning. The governance clock also runs on timestamps by design (L-02). |
+| `erc20-unchecked-transfer` | `test/unit/FundShare.t.sol:195`, `:214` | The token is `FundShare`, an OpenZeppelin `ERC20` that reverts on failure and otherwise returns `true`. The second site exists to assert the revert. |
+| `incorrect-shift` | `test/integration/FundGovernor.t.sol:422`, `:446` | `1 << uint8(state)` builds the proposal-state bitmap that `GovernorUnexpectedProposalState` carries, as OpenZeppelin's `_encodeStateBitmap` does. The lint flags a literal left operand because in Yul `shl(x, y)` shifts `y` by `x`; in Solidity `1 << n` is the intended expression. |
+
+---
+
+## I-06 · Under via-IR, a test's `block.timestamp` read can move across `vm.warp`
+
+**Status:** Mitigated in tests — deployed bytecode unaffected
+
+With `via_ir` and the optimizer both enabled, a test that computes a time from
+`block.timestamp`, warps, and then uses that time can fail. In this project the symptom was
+a `Panic(0x11)` in a `getPastVotes` test. The build needs `via_ir` because
+`RaisonneDeployer`'s single function exceeds the legacy pipeline's stack limit, so turning
+it off is not an option.
+
+A minimal reproduction lives in a separate repository, and reproduces on solc 0.8.36 and
+0.8.37. Its README attributes the panic to the ternary guarding `index - 1` in
+`Checkpoints.upperLookupRecent`. A full trace of the reproduction does not support that:
+
+- the second `vm.warp` goes to 259201, not 172801. `delegationTimestamp` was recomputed
+  from `block.timestamp` after the first warp, rather than kept from before it
+- the panic is raised in the test contract, and `getPastVotes` is never called
+- reading the start time through `vm.getBlockTimestamp()`, with nothing else changed and
+  the same compiler settings, makes the test pass
+
+The optimizer is entitled to treat `block.timestamp` as constant for the duration of a
+call, and may re-read it instead of keeping a copy. `vm.warp` changes it mid-call, which
+no real transaction can do. That makes this a property of testing with cheatcodes, not a
+code generation fault, and deployed contracts are unaffected.
+
+The affected test, `test/unit/FundShare.t.sol:220`, reads time through
+`vm.getBlockTimestamp()`. Any new test that computes a time before a warp and uses it after
+should do the same.
+
+---
+
+## I-07 · Some Sepolia images are licensed for non-commercial use only
+
+**Status:** Acknowledged
+
+The Rijksmuseum works are public domain. The Mauritshuis images are used under the
+museum's non-commercial terms; on Sepolia that covers tokens 1, 7, 8, 10, and 11. A testnet
+deployment satisfies those terms. A deployment holding these tokens for value would not,
+and would need its own rights to the images.
