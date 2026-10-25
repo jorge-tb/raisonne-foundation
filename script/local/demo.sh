@@ -14,7 +14,7 @@
 #   make deploy
 #   make demo
 #
-# Requires .env to define STAKEHOLDERS_KEYS, CONTRIBUTIONS and GALLERY_SIZE.
+# Requires .env to define STAKEHOLDERS_KEYS, CONTRIBUTIONS and GALLERY_FILENAME.
 # ProposeGallery.s.sol must log a line of the form PROPOSAL_ID=<id>.
 
 set -euo pipefail
@@ -45,6 +45,15 @@ IFS=',' read -ra AMOUNTS <<< "$CONTRIBUTIONS"
   echo "error: STAKEHOLDERS_KEYS and CONTRIBUTIONS have different lengths" >&2
   exit 1
 }
+
+GALLERY_FILE="galleries/${GALLERY_FILENAME}.json"
+
+[[ -f "$GALLERY_FILE" ]] || {
+  echo "error: gallery file ${GALLERY_FILE} not found" >&2
+  exit 1
+}
+
+GALLERY_SIZE=$(jq length "$GALLERY_FILE")
 
 DEPLOYER_KEY="${KEYS[0]}"
 

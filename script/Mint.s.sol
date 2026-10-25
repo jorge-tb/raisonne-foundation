@@ -16,15 +16,15 @@ contract Mint is Script {
         Deployment memory d = DeploymentRecord.read(block.chainid);
 
         // Load environment variables.
-        uint256 gallerySize = vmSafe.envUint("GALLERY_SIZE");
+        string memory filename = vmSafe.envString("GALLERY_FILENAME");
         uint256 artworkIndex = vmSafe.envUint("ARTWORK_INDEX");
 
-        // Validate environment variables.
-        require(gallerySize > 0, "gallery size must be greater than zero");
-        require(artworkIndex < gallerySize, "invalid artwork index");
-
         // Re-create the sample gallery.
-        Artwork[] memory artworks = SampleGallery.create(gallerySize);
+        Artwork[] memory artworks = SampleGallery.load(string.concat(_galleryPath(filename)));
+
+        // Validate environment variables.
+        require(artworkIndex < artworks.length, "invalid artwork index");
+
         bytes32 root = SampleGallery.root(artworks);
         bytes32[] memory proof = SampleGallery.proof(artworks, artworkIndex);
         Artwork memory unminted = artworks[artworkIndex];
@@ -49,5 +49,9 @@ contract Mint is Script {
             keccak256(bytes(tokenURI)) == keccak256(bytes(string.concat("ipfs://", unminted.cId))), "invalid token URI"
         );
         require(owner == address(d.treasuryProxy), "treasury must be the owner of the artwork NFT");
+    }
+
+    function _galleryPath(string memory filename) private pure returns (string memory path) {
+        path = string.concat("./galleries/", filename, ".json");
     }
 }
