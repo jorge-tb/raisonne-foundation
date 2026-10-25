@@ -1,0 +1,12 @@
+{
+  "calldatas": [
+    "0x596fad1fed415c54aef3a85048656fb73ee4056213060f55a183a87ae4d2c166d8ab6e36"
+  ],
+  "description": "Acquisition 001: ten works from the Rijksmuseum and Mauritshuis. Tree published at ipfs://bafkreihk7nawgkl3ckfc6vjpkghdnz4qkbg3oc7n2l7qjedpxnpjnqhtim; rebuild the root and compare before voting.",
+  "targets": [
+    "0x62Fd289eB04ACE835c01748968a91519FBd19c49"
+  ],
+  "values": [
+    0
+  ]
+}
