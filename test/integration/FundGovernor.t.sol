@@ -2,15 +2,15 @@
 pragma solidity ^0.8.36;
 
 import {Test} from "forge-std/Test.sol";
-import {FundGovernor} from "../../src/FundGovernor.sol";
-import {FundShare} from "../../src/FundShare.sol";
-import {FundTreasury} from "../../src/FundTreasury.sol";
-import {ArtRegistry} from "../../src/ArtRegistry.sol";
 import {TimelockController} from "@openzeppelin/contracts/governance/TimelockController.sol";
 import {IGovernor} from "@openzeppelin/contracts/governance/IGovernor.sol";
 import {GovernorCountingSimple} from "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Merkle} from "murky/Merkle.sol";
+import {FundGovernor} from "../../src/FundGovernor.sol";
+import {FundShare} from "../../src/FundShare.sol";
+import {FundTreasury} from "../../src/FundTreasury.sol";
+import {ArtRegistry} from "../../src/ArtRegistry.sol";
+import {SampleGallery, Artwork} from "../helpers/SampleGallery.sol";
 
 contract FundGovernorIntegrationTest is Test {
     // TimelockController - constants
@@ -30,11 +30,6 @@ contract FundGovernorIntegrationTest is Test {
 
     address[] private _stakeholders;
     uint256[] private _contributions;
-
-    struct Artwork {
-        uint256 tokenId;
-        string cid;
-    }
 
     function setUp() public {
         // - Deploy FundTreasury
@@ -478,16 +473,8 @@ contract FundGovernorIntegrationTest is Test {
 
     function test_AcquisitionFlow_MintsArtworkToTreasury() public {
         // Curate artworks into a Merkle tree and obtain the gallery root.
-        Merkle merkle = new Merkle();
-        Artwork[5] memory artworks = [
-            Artwork(1, "CID-001"),
-            Artwork(2, "CID-002"),
-            Artwork(3, "CID-003"),
-            Artwork(4, "CID-004"),
-            Artwork(5, "CID-005")
-        ];
-        bytes32[] memory data = _hashArtworks(artworks);
-        bytes32 root = merkle.getRoot(data);
+        Artwork[] memory artworks = SampleGallery.create(5);
+        bytes32 root = SampleGallery.root(artworks);
 
         // Create add gallery root proposal
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) =
@@ -516,13 +503,13 @@ contract FundGovernorIntegrationTest is Test {
         governor.execute(targets, values, calldatas, keccak256(bytes(description)));
 
         // Mint artwork bounded to gallery's merkle root providing a valid proof.
-        bytes32[] memory proof = merkle.getProof(data, 0);
+        bytes32[] memory proof = SampleGallery.proof(artworks, 0);
         vm.prank(stakeholderWith25Percent);
-        registry.mintArtwork(proof, root, artworks[0].tokenId, artworks[0].cid);
+        registry.mintArtwork(proof, root, artworks[0].tokenId, artworks[0].cId);
 
         assertTrue(registry.isGalleryEnabled(root));
         assertEq(registry.ownerOf(artworks[0].tokenId), address(treasury));
-        assertEq(registry.tokenURI(artworks[0].tokenId), "ipfs://CID-001");
+        assertEq(registry.tokenURI(artworks[0].tokenId), "ipfs://CID-1");
     }
 
     // Note: Total fixed contributions sum 100 and that's what makes percentages readable.
@@ -542,20 +529,5 @@ contract FundGovernorIntegrationTest is Test {
         targets[0] = target;
         values[0] = value;
         calldatas[0] = _calldata;
-    }
-
-    function _hashArtworks(Artwork[5] memory artworks) private pure returns (bytes32[] memory data) {
-        data = new bytes32[](artworks.length);
-        for (uint256 i = 0; i < artworks.length;) {
-            data[i] = _hashArtwork(artworks[i]);
-            unchecked {
-                ++i;
-            }
-        }
-        return data;
-    }
-
-    function _hashArtwork(Artwork memory artwork) private pure returns (bytes32) {
-        return keccak256(bytes.concat(keccak256(abi.encode(artwork.tokenId, artwork.cid))));
     }
 }
