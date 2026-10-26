@@ -2,20 +2,15 @@
 pragma solidity ^0.8.36;
 
 import {Test} from "forge-std/Test.sol";
-import {ArtRegistry} from "../../src/ArtRegistry.sol";
-import {Merkle} from "murky/Merkle.sol";
 import {IERC721Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {SampleGallery, Artwork} from "../helpers/SampleGallery.sol";
+import {ArtRegistry} from "../../src/ArtRegistry.sol";
 
 contract ArtRegistryTest is Test {
     ArtRegistry artRegistry;
     address timelock;
     address treasury;
-
-    struct Artwork {
-        uint256 tokenId;
-        string cid;
-    }
 
     function setUp() public {
         timelock = makeAddr("timelock");
@@ -94,95 +89,63 @@ contract ArtRegistryTest is Test {
 
     function test_MintArtwork_ValidProof() public {
         // Construct merkle tree
-        Merkle merkle = new Merkle();
-        Artwork[5] memory artworks = [
-            Artwork(1, "CID-001"),
-            Artwork(2, "CID-002"),
-            Artwork(3, "CID-003"),
-            Artwork(4, "CID-004"),
-            Artwork(5, "CID-005")
-        ];
-        bytes32[] memory data = _hashArtworks(artworks);
+        Artwork[] memory artworks = SampleGallery.create(5);
         // Compute gallery root
-        bytes32 root = merkle.getRoot(data);
+        bytes32 root = SampleGallery.root(artworks);
         // Add gallery root
         vm.prank(timelock);
         artRegistry.addGallery(root);
         // Mint artwork - obtain merkle proof
-        bytes32[] memory proof = merkle.getProof(data, 0);
+        bytes32[] memory proof = SampleGallery.proof(artworks, 0);
         // Mint artwork - configure expected event
         vm.expectEmit(true, true, true, true);
-        emit ArtRegistry.ArtworkMinted(root, artworks[0].tokenId, artworks[0].cid);
+        emit ArtRegistry.ArtworkMinted(root, artworks[0].tokenId, artworks[0].cId);
         // Mint artwork - call (it's an open function)
-        artRegistry.mintArtwork(proof, root, artworks[0].tokenId, artworks[0].cid);
+        artRegistry.mintArtwork(proof, root, artworks[0].tokenId, artworks[0].cId);
         // Obtain tokenURI
         string memory artwork1URI = artRegistry.tokenURI(artworks[0].tokenId);
-        vm.assertEq(artwork1URI, "ipfs://CID-001");
+        vm.assertEq(artwork1URI, "ipfs://CID-1");
         // Ensure it belongs to fund treasury
         address owner = artRegistry.ownerOf(artworks[0].tokenId);
         vm.assertEq(owner, treasury);
     }
 
     function test_RevertWhen_MintArtworkMetadataTampered() public {
-        Merkle merkle = new Merkle();
-        Artwork[5] memory artworks = [
-            Artwork(1, "CID-001"),
-            Artwork(2, "CID-002"),
-            Artwork(3, "CID-003"),
-            Artwork(4, "CID-004"),
-            Artwork(5, "CID-005")
-        ];
-        bytes32[] memory data = _hashArtworks(artworks);
-        bytes32 root = merkle.getRoot(data);
+        Artwork[] memory artworks = SampleGallery.create(5);
+        bytes32 root = SampleGallery.root(artworks);
 
-        Artwork memory invalid = Artwork(1, "CID-TAMPERED");
+        Artwork memory invalid = Artwork("CID-TAMPERED", 1);
         bytes32 invalidLeaf = _hashArtwork(invalid);
 
         vm.prank(timelock);
         artRegistry.addGallery(root);
 
-        bytes32[] memory proof = merkle.getProof(data, 0);
+        bytes32[] memory proof = SampleGallery.proof(artworks, 0);
         vm.expectRevert(abi.encodeWithSelector(ArtRegistry.InvalidMerkleProof.selector, invalidLeaf));
-        artRegistry.mintArtwork(proof, root, invalid.tokenId, invalid.cid);
+        artRegistry.mintArtwork(proof, root, invalid.tokenId, invalid.cId);
     }
 
     function test_RevertWhen_MintArtworkAndTokenAlreadyMinted() public {
-        Merkle merkle = new Merkle();
-        Artwork[5] memory artworks = [
-            Artwork(1, "CID-001"),
-            Artwork(2, "CID-002"),
-            Artwork(3, "CID-003"),
-            Artwork(4, "CID-004"),
-            Artwork(5, "CID-005")
-        ];
-        bytes32[] memory data = _hashArtworks(artworks);
-        bytes32 root = merkle.getRoot(data);
+        Artwork[] memory artworks = SampleGallery.create(5);
+        bytes32 root = SampleGallery.root(artworks);
 
         vm.prank(timelock);
         artRegistry.addGallery(root);
 
-        bytes32[] memory proof = merkle.getProof(data, 0);
-        artRegistry.mintArtwork(proof, root, artworks[0].tokenId, artworks[0].cid);
+        bytes32[] memory proof = SampleGallery.proof(artworks, 0);
+        artRegistry.mintArtwork(proof, root, artworks[0].tokenId, artworks[0].cId);
 
         vm.expectRevert(abi.encodeWithSelector(IERC721Errors.ERC721InvalidSender.selector, address(0)));
-        artRegistry.mintArtwork(proof, root, artworks[0].tokenId, artworks[0].cid);
+        artRegistry.mintArtwork(proof, root, artworks[0].tokenId, artworks[0].cId);
     }
 
     function test_RevertWhen_MintArtworkBelongingToDisabledGallery() public {
-        Merkle merkle = new Merkle();
-        Artwork[5] memory artworks = [
-            Artwork(1, "CID-001"),
-            Artwork(2, "CID-002"),
-            Artwork(3, "CID-003"),
-            Artwork(4, "CID-004"),
-            Artwork(5, "CID-005")
-        ];
-        bytes32[] memory data = _hashArtworks(artworks);
-        bytes32 root = merkle.getRoot(data);
+        Artwork[] memory artworks = SampleGallery.create(5);
+        bytes32 root = SampleGallery.root(artworks);
+        bytes32[] memory proof = SampleGallery.proof(artworks, 0);
 
-        bytes32[] memory proof = merkle.getProof(data, 0);
         vm.expectRevert(abi.encodeWithSelector(ArtRegistry.InvalidGallery.selector, root));
-        artRegistry.mintArtwork(proof, root, artworks[0].tokenId, artworks[0].cid);
+        artRegistry.mintArtwork(proof, root, artworks[0].tokenId, artworks[0].cId);
     }
 
     function _hashArtworks(Artwork[5] memory artworks) private pure returns (bytes32[] memory data) {
@@ -197,6 +160,6 @@ contract ArtRegistryTest is Test {
     }
 
     function _hashArtwork(Artwork memory artwork) private pure returns (bytes32) {
-        return keccak256(bytes.concat(keccak256(abi.encode(artwork.tokenId, artwork.cid))));
+        return keccak256(bytes.concat(keccak256(abi.encode(artwork.tokenId, artwork.cId))));
     }
 }
