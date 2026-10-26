@@ -5,7 +5,6 @@ import {Test} from "forge-std/Test.sol";
 import {SampleGallery, Artwork} from "../helpers/SampleGallery.sol";
 
 contract SampleGalleryTest is Test {
-    
     function test_Load_DecodesToStruct() public view {
         Artwork[] memory artworks = SampleGallery.load("./test/fixtures/test-gallery.json");
         for (uint256 i = 0; i < artworks.length; i++) {
