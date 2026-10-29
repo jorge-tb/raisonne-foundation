@@ -3,6 +3,7 @@
   --foreground: #111111;
   --muted: #666666;
   --rule: #dddddd;
+  --panel: #f6f6f6;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -11,6 +12,7 @@
     --foreground: #eeeeee;
     --muted: #999999;
     --rule: #333333;
+    --panel: #161616;
   }
 }
 
@@ -26,15 +28,124 @@ body {
   line-height: 1.5;
 }
 
-main {
-  max-width: 64rem;
-  margin: 0 auto;
-  padding: 2rem 1rem;
+a {
+  color: inherit;
+  text-underline-offset: 0.15em;
 }
 
-code {
+main,
+.site-header nav,
+.site-footer {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+main {
+  padding-top: 1.5rem;
+  padding-bottom: 3rem;
+}
+
+.site-header {
+  border-bottom: 1px solid var(--rule);
+}
+
+.site-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  align-items: baseline;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.site-header .brand {
+  font-weight: 700;
+  margin-right: auto;
+  text-decoration: none;
+}
+
+.site-footer {
+  border-top: 1px solid var(--rule);
+  padding-top: 1rem;
+  padding-bottom: 2rem;
+}
+
+h1 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  margin: 0 0 0.5rem;
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin: 2rem 0 0.5rem;
+}
+
+h3 {
+  font-size: 1rem;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.lede {
+  max-width: 44rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.875rem;
+}
+
+code,
+pre {
   font-family: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+  font-size: 0.85em;
+}
+
+/* Full identifiers: wrap anywhere, never truncate. */
+.hash {
   overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+pre.call {
+  background: var(--panel);
+  padding: 0.75rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  margin: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.4rem 0.5rem 0.4rem 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+th {
+  font-weight: 600;
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+tfoot td {
+  border-bottom: none;
 }
 
 dt {
@@ -44,4 +155,88 @@ dt {
 
 dd {
   margin: 0;
+}
+
+dl.compact dt {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+ul.plain {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.card {
+  border-top: 1px solid var(--rule);
+  padding: 1rem 0 1.5rem;
+}
+
+.card header h2 {
+  margin: 0.25rem 0 0.5rem;
+}
+
+.state {
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Typographic weight, not colour: final outcomes heavier, open states lighter. */
+.state-pending,
+.state-succeeded,
+.state-queued {
+  font-weight: 500;
+}
+
+.state-active {
+  text-decoration: underline;
+}
+
+.state-defeated,
+.state-canceled,
+.state-expired {
+  color: var(--muted);
+}
+
+.verdict-mismatch,
+.verdict-malformed {
+  text-decoration: underline wavy;
+}
+
+ol.actions {
+  padding-left: 1.25rem;
+}
+
+ol.actions > li {
+  margin-bottom: 0.75rem;
+}
+
+ol.proof {
+  padding-left: 1.5rem;
+  margin: 0;
+}
+
+.description {
+  white-space: pre-wrap;
+}
+
+details.leaf {
+  border-top: 1px solid var(--rule);
+  padding: 0.5rem 0;
+}
+
+details summary {
+  cursor: pointer;
+}
+
+button {
+  font: inherit;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--foreground);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
 }
