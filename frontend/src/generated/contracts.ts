@@ -3,6 +3,14 @@ import type { Address } from "viem";
 
 export const CHAIN_ID = 11155111;
 
+export const ADDRESSES = {
+  FundShare: "0xE5f29e986CC038E0d816b9b8d58118BDF539aF42" as Address,
+  FundGovernor: "0xe2b54dC53bB76Aa9F102A1E882e5D8F8Fc999f64" as Address,
+  TimelockController: "0x7BF5F5086f81d17f0F786C668dF77D3323f8a2C6" as Address,
+  ArtRegistry: "0x62Fd289eB04ACE835c01748968a91519FBd19c49" as Address,
+  FundTreasury: "0x3489a56aB9F42B39B2cB78DA0c7d124b02b97109" as Address,
+} as const;
+
 export const FundShare = {
   address: "0xE5f29e986CC038E0d816b9b8d58118BDF539aF42" as Address,
   abi: [

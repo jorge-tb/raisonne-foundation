@@ -76,14 +76,7 @@ export default async function GalleryPage(props: PageProps<"/galleries/[root]">)
       </dl>
 
       {gallery.cid ? (
-        <ProofExplorer
-          root={gallery.root}
-          cid={gallery.cid}
-          gateway={ipfsGateway()}
-          enabled={gallery.enabled}
-          registry={ArtRegistry.address}
-          mintedTokenIds={snapshot.mintedTokenIds.map(String)}
-        />
+        <ProofExplorer root={gallery.root} cid={gallery.cid} gateway={ipfsGateway()} registry={ArtRegistry.address} />
       ) : (
         <p>
           <strong>? Unverifiable.</strong> The proposal description doesn&apos;t name exactly one tree CID, so there is

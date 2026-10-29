@@ -232,6 +232,21 @@ details summary {
   cursor: pointer;
 }
 
+.browser-check {
+  border-left: 3px solid var(--foreground);
+  padding: 0.25rem 0 0.25rem 1rem;
+  margin: 1rem 0;
+}
+
+.browser-check h2,
+.browser-check h3:first-child {
+  margin-top: 0;
+}
+
+ul.checks li {
+  margin-bottom: 0.4rem;
+}
+
 button {
   font: inherit;
   padding: 0.25rem 0.75rem;

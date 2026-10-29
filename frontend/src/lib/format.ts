@@ -1,4 +1,4 @@
-import type { ProposalState } from "./proposals";
+import type { ProposalState } from "./states";
 
 export const ETHERSCAN = "https://sepolia.etherscan.io";
 export const etherscanAddress = (address: string) => `${ETHERSCAN}/address/${address}`;

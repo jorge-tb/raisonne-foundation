@@ -2,10 +2,9 @@ import type { PublicClient } from "viem";
 import { FundGovernor } from "@/generated/contracts";
 import { classifyAction } from "./actions";
 import { eventsOf, type ScanResult } from "./chain";
+import { PROPOSAL_STATES } from "./states";
 
-// IGovernor.ProposalState order. Expired is unreachable with GovernorTimelockControl but kept for the mapping.
-export const PROPOSAL_STATES = ["Pending", "Active", "Canceled", "Defeated", "Succeeded", "Queued", "Expired", "Executed"] as const;
-export type ProposalState = (typeof PROPOSAL_STATES)[number];
+export { PROPOSAL_STATES, type ProposalState } from "./states";
 
 // Every ProposalCreated in the scan, in chain order, with live state() and per-action classification.
 export async function getProposals(client: PublicClient, scan: ScanResult) {

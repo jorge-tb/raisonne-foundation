@@ -4,7 +4,8 @@ import { formatEther } from "viem";
 import { AddressLink, AsOf, External, Hash, StateLabel, VerdictLabel } from "@/components/ui";
 import { FundGovernor } from "@/generated/contracts";
 import { etherscanAddress, etherscanTx, formatTimestamp, proposalTitle } from "@/lib/format";
-import { getSnapshot, type SnapshotProposal } from "@/lib/server/snapshot";
+import { getSnapshot, ipfsGateway, type SnapshotProposal } from "@/lib/server/snapshot";
+import { ProposalCheck } from "./ProposalCheck";
 
 export const metadata: Metadata = { title: "Proposals" };
 
@@ -16,6 +17,11 @@ export default async function ProposalsPage() {
       <p className="lede">
         Every proposal created on the Governor, including duplicates and defeated ones, with its live state. Anyone can
         propose any calldata, so each action is decoded and checked here rather than trusted.
+      </p>
+      <p className="small">
+        Each proposal is checked twice: by our server (verdicts under <em>Actions</em>) and again in your browser against
+        the Governor, so you don&apos;t have to trust our server for what you see. One thing your browser can&apos;t
+        check: this list comes from our server, which could leave a proposal out. It can&apos;t alter or invent one.
       </p>
       <AsOf snapshot={snapshot} />
       {snapshot.proposals.length === 0 && <p>No proposals yet.</p>}
@@ -66,7 +72,7 @@ function ProposalCard({ proposal: p, now }: { proposal: SnapshotProposal; now: b
       </dl>
       <VotingWindow proposal={p} now={now} />
 
-      <h3>Actions</h3>
+      <h3>Actions (checked by our server)</h3>
       <ol className="actions">
         {p.actions.map((a, i) => (
           <li key={i}>
@@ -75,6 +81,15 @@ function ProposalCard({ proposal: p, now }: { proposal: SnapshotProposal; now: b
           </li>
         ))}
       </ol>
+
+      <ProposalCheck
+        id={p.id.toString()}
+        targets={p.actions.map((a) => a.target)}
+        values={p.actions.map((a) => a.value.toString())}
+        calldatas={p.actions.map((a) => a.calldata)}
+        description={p.description}
+        gateway={ipfsGateway()}
+      />
 
       <details>
         <summary>Full description</summary>
