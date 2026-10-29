@@ -54,7 +54,8 @@ function render(): string {
 const next = render();
 
 if (process.argv.includes("--check")) {
-  const current = existsSync(OUTPUT) ? readFileSync(OUTPUT, "utf8") : "";
+  // Ignore line endings: core.autocrlf checks the committed LF file out as CRLF on Windows.
+  const current = existsSync(OUTPUT) ? readFileSync(OUTPUT, "utf8").replace(/\r\n/g, "\n") : "";
   if (current !== next) {
     console.error(`${OUTPUT} is stale. Run \`forge build\` then \`npm run gen:contracts\` and commit.`);
     process.exit(1);

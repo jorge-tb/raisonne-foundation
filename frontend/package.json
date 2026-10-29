@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "gen:contracts": "tsx scripts/gen-contracts.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify": "tsx scripts/verify-proposals.mts"
   },
   "dependencies": {
     "next": "16.4.3",
