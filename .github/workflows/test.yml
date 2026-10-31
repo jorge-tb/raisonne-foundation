@@ -2,9 +2,16 @@ name: CI
 
 permissions: {}
 
+# Frontend-only changes don't touch the contracts; frontend.yml covers them.
 on:
   push:
+    paths-ignore:
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
   pull_request:
+    paths-ignore:
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
   workflow_dispatch:
 
 jobs:

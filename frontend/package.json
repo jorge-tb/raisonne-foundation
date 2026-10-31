@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "gen:contracts": "tsx scripts/gen-contracts.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "verify": "tsx scripts/verify-proposals.mts"
   },
   "dependencies": {
@@ -26,5 +26,8 @@
     "eslint-config-next": "16.4.3",
     "tsx": "^4.23.15",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": "24.x"
   }
 }

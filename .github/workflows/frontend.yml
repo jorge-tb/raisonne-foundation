@@ -1,0 +1,74 @@
+name: Frontend
+
+permissions: {}
+
+# Runs when the app changes, or when anything that feeds the generated contract bindings does
+# (contract sources, dependencies, compiler settings, the Sepolia deployment record).
+on:
+  push:
+    paths:
+      - "frontend/**"
+      - "src/**"
+      - "lib/**"
+      - "foundry.toml"
+      - "foundry.lock"
+      - "remappings.txt"
+      - "deployments/11155111.json"
+      - ".github/workflows/frontend.yml"
+  pull_request:
+    paths:
+      - "frontend/**"
+      - "src/**"
+      - "lib/**"
+      - "foundry.toml"
+      - "foundry.lock"
+      - "remappings.txt"
+      - "deployments/11155111.json"
+      - ".github/workflows/frontend.yml"
+  workflow_dispatch:
+
+jobs:
+  check:
+    name: Next.js app
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      # Pinned to the local version so the bindings check compares like with like.
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.7.1
+
+      - name: Build contracts
+        working-directory: .
+        run: forge build
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Contract bindings are up to date
+        run: npm run gen:contracts -- --check
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # No `next build` here: pages prerender from live chain data, so the build needs the RPC
+      # and Etherscan keys. Vercel's build (preview and production) covers it.
