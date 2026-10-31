@@ -43,10 +43,13 @@ jobs:
           submodules: recursive
 
       # Pinned to the local version so the bindings check compares like with like.
+      # No cache: `forge build` doesn't use ~/.foundry/cache (fork-test RPC, Etherscan, trace
+      # signatures), and the default key would collide with test.yml's (both jobs are `check`).
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: v1.7.1
+          cache: false
 
       - name: Build contracts
         working-directory: .
