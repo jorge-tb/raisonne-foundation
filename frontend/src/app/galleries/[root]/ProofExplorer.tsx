@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import type { Hex } from "viem";
+import { RpcNotice } from "@/components/RpcNotice";
 import {
   browserClient,
   browserGateway,
   browserRpcUrl,
+  checkChain,
   checkGalleryEnabled,
   checkTokenUri,
   type Check,
@@ -18,6 +20,7 @@ type Props = { root: Hex; cid: string; gateway: string; registry: string };
 type Result = {
   rpc: string;
   gateway: string;
+  chain: Check<number>;
   tree: GalleryFetch;
   enabled: Check<boolean>;
   // tokenURI per leaf: reverts if unminted, else true when it equals ipfs://<leaf cid>.
@@ -28,9 +31,14 @@ async function run({ root, cid, gateway: fallbackGateway }: Props): Promise<Resu
   const rpc = browserRpcUrl();
   const gateway = browserGateway(fallbackGateway);
   const client = browserClient(rpc);
+  const chain = await checkChain(client);
+  if (!chain.ok) {
+    const skipped: Check<boolean> = { ok: false, reason: "unreachable", detail: chain.detail };
+    return { rpc, gateway, chain, tree: { ok: false, reason: "gateway", detail: "not fetched" }, enabled: skipped, uris: [] };
+  }
   const [tree, enabled] = await Promise.all([fetchGallery(cid, gateway), checkGalleryEnabled(client, root)]);
   const uris = tree.ok ? await Promise.all(tree.leaves.map((l) => checkTokenUri(client, l.tokenId, l.cid))) : [];
-  return { rpc, gateway, tree, enabled, uris };
+  return { rpc, gateway, chain, tree, enabled, uris };
 }
 
 // Runs in the viewer's browser, through an RPC and gateway the viewer can override:
@@ -62,23 +70,37 @@ export function ProofExplorer(props: Props) {
 
   if (!result) return <p className="muted">Checking the registry and fetching the tree…</p>;
 
-  const { tree, enabled, uris } = result;
+  const { chain, tree, enabled, uris } = result;
   const enabledNow = enabled.ok && enabled.value;
+
+  if (!chain.ok) {
+    return (
+      <section className="browser-check">
+        <h2>Checked in your browser</h2>
+        <RpcNotice rpc={result.rpc} />
+        <p>
+          ? Unable to verify: {chain.detail}. <button onClick={retry}>Retry</button>
+        </p>
+      </section>
+    );
+  }
 
   const registryLine = enabled.ok ? (
     enabled.value ? (
       <p>✓ Enabled on the registry: ArtRegistry accepts mints against this root today.</p>
     ) : (
-      <p>✕ Not enabled on the registry: this root was revoked or never enabled, so nothing can be minted from it.</p>
+      // A fact, not a mismatch: governance can revoke a gallery.
+      <p>⊘ Not enabled on the registry: this root was revoked or never enabled, so nothing can be minted from it.</p>
     )
   ) : (
     <p>
-      – Couldn&apos;t read the registry ({enabled.detail}). <button onClick={retry}>Retry</button>
+      ? Unable to read the registry ({enabled.detail}). <button onClick={retry}>Retry</button>
     </p>
   );
 
   const footer = (
     <p className="muted small">
+      ✓ passed · ✕ contradicts what is shown · ? unable to verify (not a mismatch) · ⊘ / ○ facts.{" "}
       Checked in your browser via <code className="hash">{result.rpc}</code> and{" "}
       <code className="hash">{result.gateway}</code>. Use <code>?rpc=</code> / <code>?gateway=</code> to check through
       your own endpoints.
@@ -89,6 +111,7 @@ export function ProofExplorer(props: Props) {
     return (
       <section className="browser-check">
         <h2>Checked in your browser</h2>
+        <RpcNotice rpc={result.rpc} />
         {registryLine}
         {tree.reason === "gateway" ? (
           <p>
@@ -111,6 +134,7 @@ export function ProofExplorer(props: Props) {
   return (
     <section className="browser-check">
       <h2>Checked in your browser</h2>
+      <RpcNotice rpc={result.rpc} />
       {registryLine}
       <p>
         {matches
@@ -136,7 +160,7 @@ export function ProofExplorer(props: Props) {
             ? mintable
               ? "○ mintable"
               : "○ not minted"
-            : "– mint status unknown"
+            : "? mint status unknown"
           : uri.value
             ? "■ minted, tokenURI matches this leaf"
             : "✕ minted, but tokenURI differs from this leaf";

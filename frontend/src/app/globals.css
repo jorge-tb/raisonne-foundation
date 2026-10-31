@@ -255,3 +255,8 @@ button {
   color: inherit;
   cursor: pointer;
 }
+
+.rpc-notice {
+  border: 2px solid var(--foreground);
+  padding: 0.5rem 0.75rem;
+}
