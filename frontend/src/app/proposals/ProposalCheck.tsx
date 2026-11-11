@@ -31,7 +31,7 @@ const GLYPH: Record<Status, string> = { pass: "✓", fail: "✕", unverifiable: 
 export async function runProposalCheck(p: Props, rpc: string, gateway: string): Promise<Line[]> {
   const client = browserClient(rpc);
 
-  const chain = await checkChain(client);
+  const chain = await checkChain(client, rpc);
   if (!chain.ok) return [{ status: "unverifiable", text: `Unable to verify: ${chain.detail}.` }];
 
   const contents = {
