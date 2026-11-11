@@ -59,8 +59,16 @@ export const browserGateway = (fallback = DEFAULT_IPFS_GATEWAY) => override("gat
 // explicitly must not count as an override.
 export const rpcOverridden = (rpcUrl: string) => new URL(rpcUrl).href !== new URL(DEFAULT_BROWSER_RPC).href;
 
+// One client per RPC URL for the whole page, so concurrent checks share viem's request dedupe.
+const clients = new Map<string, PublicClient>();
+
 export function browserClient(rpcUrl: string): PublicClient {
-  return createPublicClient({ chain: sepolia, transport: http(rpcUrl, { retryCount: 2 }) });
+  let client = clients.get(rpcUrl);
+  if (!client) {
+    client = createPublicClient({ chain: sepolia, transport: http(rpcUrl, { retryCount: 2 }) });
+    clients.set(rpcUrl, client);
+  }
+  return client;
 }
 
 // "rejected": the contract gave the specific answer we asked about (e.g. GovernorNonexistentProposal).
