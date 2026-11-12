@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { formatEther } from "viem";
-import { AddressLink, AsOf } from "@/components/ui";
+import { AddressLink, AsOf, External } from "@/components/ui";
 import { ArtRegistry, FundGovernor, FundShare, FundTreasury, TimelockController } from "@/generated/contracts";
-import { formatBps } from "@/lib/format";
+import { etherscanCode, formatBps } from "@/lib/format";
 import { getSnapshot } from "@/lib/server/snapshot";
 
 const CONTRACTS = [
@@ -95,7 +95,7 @@ export default async function Home() {
                 {name} <span className="muted">· {role}</span>
               </dt>
               <dd>
-                <AddressLink address={address} />
+                <AddressLink address={address} /> · <External href={etherscanCode(address)}>verified source</External>
               </dd>
             </div>
           ))}

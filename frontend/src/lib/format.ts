@@ -2,6 +2,8 @@ import type { ProposalState } from "./states";
 
 export const ETHERSCAN = "https://sepolia.etherscan.io";
 export const etherscanAddress = (address: string) => `${ETHERSCAN}/address/${address}`;
+// The Contract tab: the verified source (every project contract is verified on Etherscan).
+export const etherscanCode = (address: string) => `${etherscanAddress(address)}#code`;
 export const etherscanTx = (hash: string) => `${ETHERSCAN}/tx/${hash}`;
 // The transaction's Logs tab: the decoded events, e.g. GalleryAdded with its root.
 export const etherscanTxLogs = (hash: string) => `${etherscanTx(hash)}#eventlog`;
