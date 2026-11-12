@@ -260,3 +260,48 @@ button {
   border: 2px solid var(--foreground);
   padding: 0.5rem 0.75rem;
 }
+
+.rebuild {
+  border-top: 1px solid var(--rule);
+  margin-top: 2rem;
+}
+
+.dropzone {
+  display: block;
+  margin: 1rem 0;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  border: 1px dashed var(--muted);
+  cursor: pointer;
+}
+
+/* Children ignore the pointer so dragging over them doesn't fire dragleave on the zone. */
+.dropzone > * {
+  pointer-events: none;
+}
+
+.dropzone:hover,
+.dropzone.dragging {
+  border-style: solid;
+  border-color: var(--foreground);
+  background: var(--panel);
+}
+
+.dropzone:focus-within {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.rebuild-result {
+  border-left: 3px solid var(--foreground);
+  padding-left: 1rem;
+}
