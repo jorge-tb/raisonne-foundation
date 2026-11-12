@@ -1,4 +1,4 @@
-import type { PublicClient } from "viem";
+import type { Hex, PublicClient } from "viem";
 import { FundGovernor } from "@/generated/contracts";
 import { classifyAction } from "./actions";
 import { eventsOf, type ScanResult } from "./chain";
@@ -7,8 +7,13 @@ import { PROPOSAL_STATES } from "./states";
 export { PROPOSAL_STATES, type ProposalState } from "./states";
 
 // Every ProposalCreated in the scan, in chain order, with live state() and per-action classification.
+// Queue and execution transactions come from the same scan, so each lifecycle step links to Etherscan.
 export async function getProposals(client: PublicClient, scan: ScanResult) {
   const created = eventsOf(scan, FundGovernor, "ProposalCreated");
+  const queued = eventsOf(scan, FundGovernor, "ProposalQueued");
+  const executed = eventsOf(scan, FundGovernor, "ProposalExecuted");
+  const step = (log: { blockNumber: bigint; transactionHash: Hex } | undefined) =>
+    log ? { blockNumber: log.blockNumber, transactionHash: log.transactionHash } : null;
   return Promise.all(
     created.map(async (log) => {
       const { proposalId, proposer, targets, values, calldatas, description, voteStart, voteEnd } = log.args;
@@ -18,6 +23,8 @@ export async function getProposals(client: PublicClient, scan: ScanResult) {
         proposer,
         blockNumber: log.blockNumber,
         transactionHash: log.transactionHash,
+        queued: step(queued.find((l) => l.args.proposalId === proposalId)),
+        executed: step(executed.find((l) => l.args.proposalId === proposalId)),
         description,
         voteStart,
         voteEnd,

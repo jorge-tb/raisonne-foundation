@@ -3,9 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AsOf, External, Hash, StateLabel } from "@/components/ui";
 import { ArtRegistry } from "@/generated/contracts";
-import { etherscanTx, proposalTitle } from "@/lib/format";
+import { etherscanTx, etherscanTxLogs, proposalTitle } from "@/lib/format";
 import { getSnapshot, ipfsGateway } from "@/lib/server/snapshot";
 import { ProofExplorer } from "./ProofExplorer";
+
+const REPOSITORY = "https://github.com/jorge-tb/raisonne-foundation";
 
 export async function generateStaticParams() {
   const { galleries } = await getSnapshot();
@@ -43,10 +45,38 @@ export default async function GalleryPage(props: PageProps<"/galleries/[root]">)
         <dt>Root (on chain)</dt>
         <dd>
           <Hash>{gallery.root}</Hash>
+          <br />
+          Added in block {gallery.added.blockNumber.toString()} ·{" "}
+          <External href={etherscanTxLogs(gallery.added.transactionHash)}>GalleryAdded event</External>
         </dd>
         <dt>Status</dt>
         <dd>
           {gallery.enabled ? "● Enabled: minting with a valid proof is possible" : "⊘ Revoked: minting is disabled"}
+          {gallery.revoked && (
+            <>
+              <br />
+              Revoked in block {gallery.revoked.blockNumber.toString()} ·{" "}
+              <External href={etherscanTxLogs(gallery.revoked.transactionHash)}>GalleryRevoked event</External>
+            </>
+          )}
+        </dd>
+        <dt>Tree file</dt>
+        <dd>
+          {gallery.cid ? (
+            <>
+              <External href={new URL(gallery.cid, ipfsGateway()).href}>
+                <Hash>ipfs://{gallery.cid}</Hash>
+              </External>
+              <br />
+              <span className="muted small">
+                Rebuild the root yourself: <code>npm run verify</code> in the repository&apos;s{" "}
+                <External href={`${REPOSITORY}/tree/main/frontend#readme`}>frontend</External>, with your own RPC and
+                Etherscan keys.
+              </span>
+            </>
+          ) : (
+            "no single CID in the proposal description"
+          )}
         </dd>
         <dt>Proposals adding this root</dt>
         <dd>
