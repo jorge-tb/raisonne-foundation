@@ -7,8 +7,9 @@ import type { Proposal } from "./proposals";
 export type Gallery = {
   root: Hex;
   enabled: boolean;
-  addedBlock: bigint;
-  revokedBlock: bigint | null;
+  // Transactions of the latest GalleryAdded / GalleryRevoked, for Etherscan links.
+  added: { blockNumber: bigint; transactionHash: Hex };
+  revoked: { blockNumber: bigint; transactionHash: Hex } | null;
   // Proposals whose actions add this root (root -> proposal is one-to-many, e.g. Acquisition 001 twice).
   proposalIds: bigint[];
   // The proposal the tree CID is taken from: the Executed one if any, else the latest.
@@ -25,9 +26,9 @@ export async function getGalleries(client: PublicClient, scan: ScanResult, propo
   const revoked = eventsOf(scan, ArtRegistry, "GalleryRevoked");
   const minted = eventsOf(scan, ArtRegistry, "ArtworkMinted");
 
-  const roots = [...new Map(added.map((l) => [l.args.root, l.blockNumber])).entries()];
+  const roots = [...new Map(added.map((l) => [l.args.root, l])).entries()];
   return Promise.all(
-    roots.map(async ([root, addedBlock]) => {
+    roots.map(async ([root, addedLog]) => {
       const enabled = await client.readContract({ ...ArtRegistry, functionName: "isGalleryEnabled", args: [root], blockNumber: scan.toBlock });
       const lastRevoke = revoked.filter((l) => l.args.root === root).at(-1);
       const linked = proposals.filter((p) => p.actions.some((a) => a.kind.kind === "add-gallery" && a.kind.root === root));
@@ -36,8 +37,8 @@ export async function getGalleries(client: PublicClient, scan: ScanResult, propo
       return {
         root,
         enabled,
-        addedBlock,
-        revokedBlock: lastRevoke?.blockNumber ?? null,
+        added: { blockNumber: addedLog.blockNumber, transactionHash: addedLog.transactionHash },
+        revoked: lastRevoke ? { blockNumber: lastRevoke.blockNumber, transactionHash: lastRevoke.transactionHash } : null,
         proposalIds: linked.map((p) => p.id),
         sourceProposalId: source?.id ?? null,
         cid: cids.length === 1 ? cids[0] : null,
