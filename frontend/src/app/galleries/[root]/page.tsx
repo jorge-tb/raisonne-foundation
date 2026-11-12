@@ -6,6 +6,7 @@ import { ArtRegistry } from "@/generated/contracts";
 import { etherscanTx, etherscanTxLogs, proposalTitle } from "@/lib/format";
 import { getSnapshot, ipfsGateway } from "@/lib/server/snapshot";
 import { ProofExplorer } from "./ProofExplorer";
+import { TreeRebuild } from "./TreeRebuild";
 
 const REPOSITORY = "https://github.com/jorge-tb/raisonne-foundation";
 
@@ -113,6 +114,8 @@ export default async function GalleryPage(props: PageProps<"/galleries/[root]">)
           nothing to rebuild.
         </p>
       )}
+
+      <TreeRebuild root={gallery.root} />
     </>
   );
 }
