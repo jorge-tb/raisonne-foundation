@@ -69,6 +69,24 @@ function ProposalCard({ proposal: p, now }: { proposal: SnapshotProposal; now: b
         <dd>
           block {p.blockNumber.toString()} · <External href={etherscanTx(p.transactionHash)}>transaction</External>
         </dd>
+        {p.queued && (
+          <>
+            <dt>Queued</dt>
+            <dd>
+              block {p.queued.blockNumber.toString()} ·{" "}
+              <External href={etherscanTx(p.queued.transactionHash)}>transaction</External>
+            </dd>
+          </>
+        )}
+        {p.executed && (
+          <>
+            <dt>Executed</dt>
+            <dd>
+              block {p.executed.blockNumber.toString()} ·{" "}
+              <External href={etherscanTx(p.executed.transactionHash)}>transaction</External>
+            </dd>
+          </>
+        )}
       </dl>
       <VotingWindow proposal={p} now={now} />
 
