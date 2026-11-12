@@ -31,7 +31,7 @@ async function run({ root, cid, gateway: fallbackGateway }: Props): Promise<Resu
   const rpc = browserRpcUrl();
   const gateway = browserGateway(fallbackGateway);
   const client = browserClient(rpc);
-  const chain = await checkChain(client);
+  const chain = await checkChain(client, rpc);
   if (!chain.ok) {
     const skipped: Check<boolean> = { ok: false, reason: "unreachable", detail: chain.detail };
     return { rpc, gateway, chain, tree: { ok: false, reason: "gateway", detail: "not fetched" }, enabled: skipped, uris: [] };
