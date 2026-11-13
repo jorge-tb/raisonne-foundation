@@ -34,7 +34,7 @@ export default async function Home() {
           </li>
           <li>
             <Link href="/galleries">{galleries.length} galleries</Link>, {galleries.filter((g) => g.enabled).length} enabled,{" "}
-            {snapshot.mintedTokenIds.length} artworks minted
+            <Link href="/artworks">{snapshot.tokens.length} artworks minted</Link>
           </li>
         </ul>
       </section>

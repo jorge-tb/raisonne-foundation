@@ -98,7 +98,7 @@ export default async function GalleryPage(props: PageProps<"/galleries/[root]">)
             <ul className="plain">
               {gallery.minted.map((m) => (
                 <li key={m.tokenId.toString()}>
-                  #{m.tokenId.toString()} · <External href={etherscanTx(m.transactionHash)}>mint transaction</External>
+                  <Link href={`/artworks/${m.tokenId}`}>#{m.tokenId.toString()}</Link> · <External href={etherscanTx(m.transactionHash)}>mint transaction</External>
                 </li>
               ))}
             </ul>
