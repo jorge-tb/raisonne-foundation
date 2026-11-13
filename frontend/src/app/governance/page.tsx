@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { formatEther } from "viem";
+import { CapTable } from "@/components/CapTable";
 import { AddressLink, AsOf, External, Hash, StateLabel, VerdictLabel } from "@/components/ui";
 import { FundGovernor } from "@/generated/contracts";
 import { etherscanAddress, etherscanTx, formatTimestamp, proposalTitle } from "@/lib/format";
@@ -15,8 +16,9 @@ export default async function GovernancePage() {
     <>
       <h1>Governance</h1>
       <p className="lede">
-        Every proposal created on the Governor, including duplicates and defeated ones, with its live state. Anyone can
-        propose any calldata, so each action is decoded and checked here rather than trusted.
+        How the fund decides: every proposal created on the Governor, including duplicates and defeated ones, with its
+        live state, and who holds the shares that vote. Anyone can propose any calldata, so each action is decoded and
+        checked here rather than trusted.
       </p>
       <p className="small">
         Each proposal is checked twice: by our server (verdicts under <em>Actions</em>) and again in your browser against
@@ -28,6 +30,7 @@ export default async function GovernancePage() {
       {snapshot.proposals.map((p) => (
         <ProposalCard key={p.id.toString()} proposal={p} now={snapshot.blockTimestamp} />
       ))}
+      <CapTable capTable={snapshot.capTable} />
     </>
   );
 }
