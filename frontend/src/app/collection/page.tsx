@@ -33,7 +33,7 @@ export default async function ArtworksPage() {
       <AsOf snapshot={snapshot} />
       {groups.length === 0 && <p>No artworks minted yet.</p>}
       {groups.map(({ gallery, title, tokens }) => (
-        <section key={gallery.root} className="acquisition">
+        <section key={gallery.root} id={gallery.root} className="acquisition">
           <h2>{title.name}</h2>
           {title.summary && <p>{title.summary}</p>}
           <p className="muted small">

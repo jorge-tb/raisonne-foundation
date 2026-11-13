@@ -419,6 +419,65 @@ button {
   padding-left: 1rem;
 }
 
+/* Provenance: vote → root → token, as a numbered chain; the step the page is about is marked. */
+.provenance {
+  list-style: none;
+  counter-reset: step;
+  margin: 0.75rem 0 2rem;
+  padding: 0;
+  display: grid;
+}
+
+.provenance li {
+  counter-increment: step;
+  position: relative;
+  display: grid;
+  gap: 0.1rem;
+  padding: 0 0 1.1rem 2.4rem;
+  min-width: 0;
+}
+
+/* The step number in a circle, and the line joining the steps. */
+.provenance li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--foreground);
+  border-radius: 50%;
+  font: 600 0.75rem ui-monospace, Consolas, monospace;
+  background: var(--background);
+}
+
+.provenance li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: calc(0.8rem - 0.5px);
+  top: 1.6rem;
+  bottom: 0;
+  border-left: 1px solid var(--rule);
+}
+
+.provenance li[aria-current="step"]::before {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.provenance-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.provenance-title {
+  font-weight: 600;
+}
+
 /* Home: one door per section, each showing what's inside right now. The collection door is the
    largest: the paintings lead. */
 .doors {

@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isAddressEqual } from "viem";
+import { decisionStep, Provenance } from "@/components/Provenance";
 import { AddressLink, AsOf, External, Hash } from "@/components/ui";
 import { FundTreasury } from "@/generated/contracts";
-import { etherscanTx } from "@/lib/format";
+import { etherscanTx, etherscanTxLogs } from "@/lib/format";
 import { REISSUED_AS } from "@/lib/metadata";
 import { getSnapshot, ipfsGateway } from "@/lib/server/snapshot";
 import { ArtworkImage } from "../ArtworkImage";
@@ -37,6 +38,8 @@ export default async function ArtworkPage(props: PageProps<"/collection/[id]">) 
   const artwork = m.status === "ok" ? m.artwork : null;
   const reissuedAs = REISSUED_AS[id];
   const reissueOf = Object.entries(REISSUED_AS).find(([, to]) => to === token.id)?.[0];
+  const gallery = snapshot.galleries.find((g) => g.root === token.galleryRoot);
+  const source = snapshot.proposals.find((p) => p.id === gallery?.sourceProposalId);
 
   return (
     <>
@@ -87,17 +90,39 @@ export default async function ArtworkPage(props: PageProps<"/collection/[id]">) 
         </div>
       </div>
 
+      <Provenance
+        current={2}
+        steps={[
+          decisionStep(source),
+          {
+            label: "Acquired",
+            title: <Link href={`/acquisitions/${token.galleryRoot}`}>Root committed on chain</Link>,
+            detail: (
+              <>
+                <Hash>{token.galleryRoot}</Hash>
+                {gallery && (
+                  <>
+                    {" "}
+                    · <External href={etherscanTxLogs(gallery.added.transactionHash)}>GalleryAdded event</External>
+                  </>
+                )}
+              </>
+            ),
+          },
+          {
+            label: "Collected",
+            title: `Token #${id} minted with a proof against that root`,
+            detail: <External href={etherscanTx(token.mintTransactionHash)}>mint transaction</External>,
+          },
+        ]}
+      />
+
       <h2>On chain and on IPFS</h2>
       <dl className="compact">
         <dt>Owner</dt>
         <dd>
           <AddressLink address={token.owner} />
           {isAddressEqual(token.owner, FundTreasury.address) && <span className="muted"> · FundTreasury (the fund)</span>}
-        </dd>
-        <dt>Minted</dt>
-        <dd>
-          <External href={etherscanTx(token.mintTransactionHash)}>mint transaction</External> · from{" "}
-          <Link href={`/acquisitions/${token.galleryRoot}`}>acquisition</Link> <Hash>{token.galleryRoot}</Hash>
         </dd>
         <dt>Metadata</dt>
         <dd>

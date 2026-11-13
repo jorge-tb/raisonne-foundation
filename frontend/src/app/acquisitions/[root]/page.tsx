@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { decisionStep, Provenance } from "@/components/Provenance";
 import { AsOf, External, Hash, StateLabel } from "@/components/ui";
 import { ArtRegistry } from "@/generated/contracts";
 import { etherscanTx, etherscanTxLogs, proposalTitle } from "@/lib/format";
@@ -41,6 +42,25 @@ export default async function AcquisitionPage(props: PageProps<"/acquisitions/[r
       </p>
       <h1>{source ? proposalTitle(source.description) : "Acquisition"}</h1>
       <AsOf snapshot={snapshot} />
+
+      <Provenance
+        current={1}
+        steps={[
+          decisionStep(source),
+          { label: "Acquired", title: "This root, committed on chain", detail: <Hash>{gallery.root}</Hash> },
+          {
+            label: "Collected",
+            title:
+              gallery.minted.length === 0 ? (
+                "Nothing minted yet"
+              ) : (
+                <Link href={`/collection#${gallery.root}`}>
+                  {gallery.minted.length} {gallery.minted.length === 1 ? "work" : "works"} minted from it
+                </Link>
+              ),
+          },
+        ]}
+      />
 
       <dl className="compact">
         <dt>Root (on chain)</dt>
