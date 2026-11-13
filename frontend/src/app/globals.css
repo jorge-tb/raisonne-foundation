@@ -1,18 +1,33 @@
+/* Collection Wall palette: an ink-toned gallery wall that lets the paintings carry the colour, and one
+   accent, ultramarine, the lapis pigment of Vermeer's turban and the Milkmaid's apron. Signal yellow is
+   for the testnet notice only. */
 :root {
-  --background: #ffffff;
-  --foreground: #111111;
-  --muted: #666666;
-  --rule: #dddddd;
-  --panel: #f6f6f6;
+  --background: #f3f4f7;
+  --surface: #ffffff;
+  --foreground: #10132a;
+  --muted: #5d6278;
+  --rule: #dfe2ea;
+  --panel: #e8eaf1;
+  --accent: #2b3fd4;
+  --accent-soft: #e6e9fd;
+  --signal: #e8b21f;
+  --ui: var(--font-ui), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --title: var(--font-title), Georgia, "Times New Roman", serif;
+  --mono: var(--font-mono), ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b0b0b;
-    --foreground: #eeeeee;
-    --muted: #999999;
-    --rule: #333333;
-    --panel: #161616;
+    --background: #0c0e18;
+    --surface: #141729;
+    --foreground: #eceef6;
+    --muted: #9399b3;
+    --rule: #23273d;
+    --panel: #1a1e33;
+    --accent: #8090ff;
+    --accent-soft: #1d2250;
+    --signal: #f2c64a;
+    color-scheme: dark;
   }
 }
 
@@ -24,13 +39,25 @@ body {
   margin: 0;
   color: var(--foreground);
   background: var(--background);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  line-height: 1.5;
+  font-family: var(--ui);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
   color: inherit;
   text-underline-offset: 0.15em;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+}
+
+a:hover {
+  color: var(--accent);
+  text-decoration-color: currentColor;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 main,
@@ -112,15 +139,16 @@ main {
 .tab[aria-current="page"] {
   color: var(--foreground);
   font-weight: 600;
-  border-bottom-color: var(--foreground);
+  border-bottom-color: var(--accent);
 }
 
 .tab-count {
-  font-family: ui-monospace, Consolas, monospace;
+  font-family: var(--mono);
   font-size: 0.72rem;
   font-weight: 400;
   padding: 0 0.35rem;
-  border: 1px solid var(--rule);
+  background: var(--accent-soft);
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
 }
 
@@ -128,17 +156,29 @@ main {
   font-size: 0.72rem;
   font-weight: 600;
   padding: 0 0.35rem;
-  background: var(--foreground);
-  color: var(--background);
+  background: var(--accent);
+  color: var(--surface);
 }
 
 .network {
-  font-family: ui-monospace, Consolas, monospace;
+  font-family: var(--mono);
   font-size: 0.72rem;
   padding: 0.1rem 0.5rem;
-  border: 1px solid var(--muted);
-  color: var(--muted);
+  border: 1px solid var(--signal);
+  color: var(--foreground);
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* The dot that says "this is a test network". */
+.network::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--signal);
 }
 
 /* Phones: the sections move to a bar at the bottom of the screen. */
@@ -175,7 +215,7 @@ main {
     bottom: 0;
     z-index: 10;
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: var(--background);
+    background: var(--surface);
     border-top: 1px solid var(--rule);
   }
 
@@ -191,9 +231,9 @@ main {
   }
 
   .bottom-bar a[aria-current="page"] {
-    color: var(--foreground);
+    color: var(--accent);
     font-weight: 600;
-    box-shadow: inset 0 2px 0 var(--foreground);
+    box-shadow: inset 0 2px 0 var(--accent);
   }
 
   .vote-dot {
@@ -229,14 +269,24 @@ main {
   padding-bottom: 2rem;
 }
 
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
 h1 {
-  font-size: 1.75rem;
-  line-height: 1.2;
-  margin: 0 0 0.5rem;
+  font-size: clamp(1.9rem, 4.5vw, 2.75rem);
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.75rem;
 }
 
 h2 {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
   margin: 2rem 0 0.5rem;
 }
 
@@ -247,6 +297,8 @@ h3 {
 
 .lede {
   max-width: 44rem;
+  font-size: 1.06rem;
+  color: var(--muted);
 }
 
 .muted {
@@ -259,8 +311,8 @@ h3 {
 
 code,
 pre {
-  font-family: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
-  font-size: 0.85em;
+  font-family: var(--mono);
+  font-size: 0.82em;
 }
 
 /* Long code with no spaces (a formula, a path) breaks only when it would overflow on a phone. */
@@ -498,7 +550,7 @@ button {
   place-items: center;
   border: 1px solid var(--foreground);
   border-radius: 50%;
-  font: 600 0.75rem ui-monospace, Consolas, monospace;
+  font: 600 0.75rem var(--mono);
   background: var(--background);
 }
 
@@ -512,15 +564,17 @@ button {
 }
 
 .provenance li[aria-current="step"]::before {
-  background: var(--foreground);
-  color: var(--background);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--surface);
 }
 
 .provenance-label {
-  font-size: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
+  letter-spacing: 0.08em;
+  color: var(--accent);
 }
 
 .provenance-title {
@@ -542,14 +596,16 @@ button {
   align-content: start;
   min-width: 0;
   padding: 1rem 1.1rem;
+  background: var(--surface);
   border: 1px solid var(--rule);
   text-decoration: none;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
 .door:hover,
 .door:focus-visible {
-  border-color: var(--foreground);
+  border-color: var(--accent);
+  color: inherit;
 }
 
 /* Spans both rows; the paintings sit at the top and the caption at the bottom. */
@@ -591,6 +647,7 @@ button {
 .door-go {
   font-weight: 600;
   font-size: 0.9rem;
+  color: var(--accent);
 }
 
 .door:hover .door-go {
@@ -676,7 +733,8 @@ button {
 }
 
 .work-label em {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--title);
+  font-style: italic;
   font-size: 1rem;
 }
 
@@ -698,7 +756,7 @@ button {
 }
 
 .work-chain {
-  font-family: ui-monospace, Consolas, monospace;
+  font-family: var(--mono);
   font-size: 0.72rem;
   opacity: 0.85;
 }
