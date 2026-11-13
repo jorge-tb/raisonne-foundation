@@ -305,3 +305,188 @@ button {
   border-left: 3px solid var(--foreground);
   padding-left: 1rem;
 }
+
+/* Artworks wall: justified rows at true proportions. Each work grows and starts from a basis set by
+   its aspect ratio (--r), so a row's works share one height; the ::after spacer keeps the last row
+   from stretching. */
+.acquisition {
+  border-top: 1px solid var(--rule);
+  margin-top: 2rem;
+  padding-top: 0.5rem;
+}
+
+.acquisition h2 {
+  margin-bottom: 0.25rem;
+}
+
+.wall {
+  --row: 220px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 2rem 1.5rem;
+  margin-top: 1.25rem;
+}
+
+.wall::after {
+  content: "";
+  flex-grow: 999;
+}
+
+@media (max-width: 40rem) {
+  .wall {
+    --row: 120px;
+    gap: 1.25rem 0.75rem;
+  }
+}
+
+/* The max() floor keeps very tall works (the 0.56 woodcut) wide enough for their label on phones.
+   The max-width cap stops a work that wraps alone from stretching across the whole row. */
+.work {
+  flex: var(--r) 1 max(calc(var(--row) * var(--r)), 6.5rem);
+  max-width: max(calc(var(--row) * var(--r) * 2), 13rem);
+  min-width: 0;
+  display: grid;
+  gap: 0.6rem;
+  text-decoration: none;
+}
+
+.work-frame {
+  position: relative;
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.4s ease;
+}
+
+.work .artwork-frame {
+  background: none;
+}
+
+.work .artwork-frame img {
+  object-fit: cover;
+}
+
+.work-label {
+  display: grid;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.work-label em {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1rem;
+}
+
+/* Caption tinted with the painting's colour (--tone, computed on the server). */
+.work-caption {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: grid;
+  gap: 0.2rem;
+  padding: 2rem 0.75rem 0.65rem;
+  color: #fff;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(to top, color-mix(in srgb, var(--tone, #333) 70%, #000), transparent);
+  opacity: 0;
+  transform: translateY(0.5rem);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.work-chain {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+
+.work:focus-visible {
+  outline: none;
+}
+
+.work:focus-visible .work-frame {
+  outline: 2px solid var(--foreground);
+  outline-offset: 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .work:hover .work-frame,
+  .work:focus-visible .work-frame {
+    transform: translateY(-4px);
+    box-shadow: 0 22px 40px -18px color-mix(in srgb, var(--tone, #888) 85%, transparent);
+  }
+
+  .work:hover .work-caption,
+  .work:focus-visible .work-caption {
+    opacity: 1;
+    transform: none;
+  }
+
+  .work:hover .work-label em {
+    text-decoration: underline;
+  }
+}
+
+@media (hover: none) {
+  .work-caption {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .work-frame,
+  .work-caption {
+    transition: opacity 0.2s ease;
+  }
+
+  .work:hover .work-frame,
+  .work:focus-visible .work-frame {
+    transform: none;
+  }
+
+  .work-caption {
+    transform: none;
+  }
+}
+
+/* Fixed aspect box: the image's own proportions when known (--r), contained, no layout shift. */
+.artwork-frame {
+  position: relative;
+  aspect-ratio: var(--r, 4 / 3);
+  max-width: 100%;
+  background: var(--panel);
+}
+
+.artwork-frame img {
+  object-fit: contain;
+}
+
+.artwork-frame.empty {
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  border: 1px dashed var(--muted);
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.artwork-detail {
+  display: grid;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.artwork-detail .artwork-frame {
+  max-height: 80vh;
+}
+
+@media (min-width: 48rem) {
+  .artwork-detail {
+    grid-template-columns: 3fr 2fr;
+    align-items: start;
+  }
+}
+
+.note {
+  border-left: 3px solid var(--foreground);
+  padding-left: 0.75rem;
+}
