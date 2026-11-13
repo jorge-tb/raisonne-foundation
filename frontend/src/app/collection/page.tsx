@@ -18,7 +18,7 @@ export default async function ArtworksPage() {
   const groups = snapshot.galleries
     .map((g) => ({
       gallery: g,
-      title: splitTitle(proposalTitle(snapshot.proposals.find((p) => p.id === g.sourceProposalId)?.description ?? "Gallery")),
+      title: splitTitle(proposalTitle(snapshot.proposals.find((p) => p.id === g.sourceProposalId)?.description ?? "Acquisition")),
       tokens: snapshot.tokens.filter((t) => t.galleryRoot === g.root),
     }))
     .filter((group) => group.tokens.length > 0);
@@ -27,7 +27,7 @@ export default async function ArtworksPage() {
     <>
       <h1>Artworks</h1>
       <p className="lede">
-        Every artwork minted from a gallery, grouped by the acquisition that added it. Titles and images come from each
+        Every artwork the fund has minted, grouped by the acquisition that added it. Titles and images come from each
         token&apos;s metadata on IPFS, at the CID recorded on chain when it was minted.
       </p>
       <AsOf snapshot={snapshot} />
@@ -38,8 +38,8 @@ export default async function ArtworksPage() {
           {title.summary && <p>{title.summary}</p>}
           <p className="muted small">
             {tokens.length} {tokens.length === 1 ? "work" : "works"} · added in block {gallery.added.blockNumber.toString()} ·
-            gallery{" "}
-            <Link href={`/galleries/${gallery.root}`}>
+            root{" "}
+            <Link href={`/acquisitions/${gallery.root}`}>
               <Hash>{gallery.root}</Hash>
             </Link>
           </p>
@@ -74,7 +74,7 @@ function Work({ token: t, gateway }: { token: SnapshotToken; gateway: string }) 
   const collection = artwork && attribute(artwork, "Collection");
 
   return (
-    <Link href={`/artworks/${t.id}`} className="work" style={style}>
+    <Link href={`/collection/${t.id}`} className="work" style={style}>
       <div className="work-frame">
         <ArtworkImage token={t} gateway={gateway} sizes={`(max-width: 40rem) 60vw, ${Math.ceil(r * ROW_PX * 1.5)}px`} />
         {artwork && (

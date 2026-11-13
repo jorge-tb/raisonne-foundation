@@ -20,14 +20,14 @@ async function findToken(id: string) {
   return { snapshot, token };
 }
 
-export async function generateMetadata(props: PageProps<"/artworks/[id]">): Promise<Metadata> {
+export async function generateMetadata(props: PageProps<"/collection/[id]">): Promise<Metadata> {
   const { id } = await props.params;
   const { token } = await findToken(id);
   const name = token?.metadata.status === "ok" ? token.metadata.artwork.name : null;
   return { title: name ? `#${id} ${name}` : `Artwork #${id}` };
 }
 
-export default async function ArtworkPage(props: PageProps<"/artworks/[id]">) {
+export default async function ArtworkPage(props: PageProps<"/collection/[id]">) {
   const { id } = await props.params;
   const { snapshot, token } = await findToken(id);
   if (!token) notFound();
@@ -41,7 +41,7 @@ export default async function ArtworkPage(props: PageProps<"/artworks/[id]">) {
   return (
     <>
       <p className="small">
-        <Link href="/artworks">← Artworks</Link>
+        <Link href="/collection">← Collection</Link>
       </p>
       <h1>
         #{id} {artwork?.name ?? <span className="muted">title unavailable</span>}
@@ -54,11 +54,11 @@ export default async function ArtworkPage(props: PageProps<"/artworks/[id]">) {
           {reissuedAs ? (
             <>
               minted with a placeholder instead of an image, and reissued as{" "}
-              <Link href={`/artworks/${reissuedAs}`}>#{reissuedAs.toString()}</Link>.
+              <Link href={`/collection/${reissuedAs}`}>#{reissuedAs.toString()}</Link>.
             </>
           ) : (
             <>
-              reissue of <Link href={`/artworks/${reissueOf}`}>#{reissueOf}</Link>, which was minted with a placeholder
+              reissue of <Link href={`/collection/${reissueOf}`}>#{reissueOf}</Link>, which was minted with a placeholder
               instead of an image.
             </>
           )}
@@ -97,7 +97,7 @@ export default async function ArtworkPage(props: PageProps<"/artworks/[id]">) {
         <dt>Minted</dt>
         <dd>
           <External href={etherscanTx(token.mintTransactionHash)}>mint transaction</External> · from{" "}
-          <Link href={`/galleries/${token.galleryRoot}`}>gallery</Link> <Hash>{token.galleryRoot}</Hash>
+          <Link href={`/acquisitions/${token.galleryRoot}`}>acquisition</Link> <Hash>{token.galleryRoot}</Hash>
         </dd>
         <dt>Metadata</dt>
         <dd>

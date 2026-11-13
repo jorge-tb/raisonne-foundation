@@ -7,13 +7,13 @@ import { etherscanAddress, etherscanTx, formatTimestamp, proposalTitle } from "@
 import { getSnapshot, ipfsGateway, type SnapshotProposal } from "@/lib/server/snapshot";
 import { ProposalCheck } from "./ProposalCheck";
 
-export const metadata: Metadata = { title: "Proposals" };
+export const metadata: Metadata = { title: "Governance" };
 
-export default async function ProposalsPage() {
+export default async function GovernancePage() {
   const snapshot = await getSnapshot();
   return (
     <>
-      <h1>Proposals</h1>
+      <h1>Governance</h1>
       <p className="lede">
         Every proposal created on the Governor, including duplicates and defeated ones, with its live state. Anyone can
         propose any calldata, so each action is decoded and checked here rather than trusted.
@@ -130,7 +130,7 @@ function ActionDetail({ action: a }: { action: SnapshotProposal["actions"][numbe
           <dl className="compact">
             <dt>Root in calldata</dt>
             <dd>
-              <Link href={`/galleries/${v.root}`}>
+              <Link href={`/acquisitions/${v.root}`}>
                 <Hash>{v.root}</Hash>
               </Link>
             </dd>

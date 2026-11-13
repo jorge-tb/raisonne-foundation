@@ -9,6 +9,15 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // Sections were renamed for visitors (Galleries → Acquisitions, Proposals → Governance, Artworks →
+  // Collection); old links keep working. The URL fragment (#proposal-id) survives the redirect.
+  async redirects() {
+    return [
+      { source: "/galleries/:path*", destination: "/acquisitions/:path*", permanent: true },
+      { source: "/proposals", destination: "/governance", permanent: true },
+      { source: "/artworks/:path*", destination: "/collection/:path*", permanent: true },
+    ];
+  },
   images: {
     remotePatterns: [{ protocol: "https", hostname: gateway.hostname, pathname: `${gateway.pathname}**`, search: "" }],
     maximumRedirects: 0,

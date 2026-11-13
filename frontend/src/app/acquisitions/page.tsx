@@ -4,9 +4,9 @@ import { AsOf, Hash } from "@/components/ui";
 import { proposalTitle } from "@/lib/format";
 import { getSnapshot } from "@/lib/server/snapshot";
 
-export const metadata: Metadata = { title: "Galleries" };
+export const metadata: Metadata = { title: "Acquisitions" };
 
-export default async function GalleriesPage() {
+export default async function AcquisitionsPage() {
   const snapshot = await getSnapshot();
   const titleOf = (id: bigint | null) => {
     const p = snapshot.proposals.find((x) => x.id === id);
@@ -15,19 +15,20 @@ export default async function GalleriesPage() {
 
   return (
     <>
-      <h1>Galleries</h1>
+      <h1>Acquisitions</h1>
       <p className="lede">
-        A gallery is a Merkle root the fund approved by vote. Artworks are minted from it by proving membership in the
-        tree. Open a gallery to rebuild its tree in your browser and inspect every proof.
+        Each acquisition the shareholders approve adds a gallery to the ArtRegistry contract: a Merkle root of the
+        artworks it brings in. Artworks are minted from it by proving membership in the tree. Open one to rebuild its tree
+        in your browser and inspect every proof.
       </p>
       <AsOf snapshot={snapshot} />
-      {snapshot.galleries.length === 0 && <p>No galleries yet.</p>}
+      {snapshot.galleries.length === 0 && <p>No acquisitions yet.</p>}
       {snapshot.galleries.map((g) => (
         <article className="card" key={g.root}>
           <header>
             <span className="state">{g.enabled ? "● Enabled" : "⊘ Revoked"}</span>
             <h2>
-              <Link href={`/galleries/${g.root}`}>{titleOf(g.sourceProposalId) ?? "Gallery"}</Link>
+              <Link href={`/acquisitions/${g.root}`}>{titleOf(g.sourceProposalId) ?? "Acquisition"}</Link>
             </h2>
           </header>
           <dl className="compact">

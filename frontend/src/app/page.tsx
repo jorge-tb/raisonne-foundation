@@ -9,7 +9,7 @@ const CONTRACTS = [
   ["FundShare", FundShare.address, "ERC-20 votes token: one share per wei subscribed"],
   ["FundGovernor", FundGovernor.address, "Proposals and voting"],
   ["TimelockController", TimelockController.address, "Executes passed proposals after a delay"],
-  ["ArtRegistry", ArtRegistry.address, "Gallery roots and minted artworks"],
+  ["ArtRegistry", ArtRegistry.address, "Acquisition roots (galleries) and minted artworks"],
   ["FundTreasury", FundTreasury.address, "Treasury (UUPS proxy)"],
 ] as const;
 
@@ -30,11 +30,11 @@ export default async function Home() {
         <h2>At a glance</h2>
         <ul className="plain">
           <li>
-            <Link href="/proposals">{proposals.length} proposals</Link>, {proposals.filter((p) => p.state === "Executed").length} executed
+            <Link href="/governance">{proposals.length} proposals</Link>, {proposals.filter((p) => p.state === "Executed").length} executed
           </li>
           <li>
-            <Link href="/galleries">{galleries.length} galleries</Link>, {galleries.filter((g) => g.enabled).length} enabled,{" "}
-            <Link href="/artworks">{snapshot.tokens.length} artworks minted</Link>
+            <Link href="/acquisitions">{galleries.length} acquisitions</Link>, {galleries.filter((g) => g.enabled).length} enabled,{" "}
+            <Link href="/collection">{snapshot.tokens.length} artworks minted</Link>
           </li>
         </ul>
       </section>
