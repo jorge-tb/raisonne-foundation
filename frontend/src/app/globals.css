@@ -61,9 +61,32 @@ main {
 }
 
 .site-header .brand {
-  font-weight: 700;
   margin-right: auto;
   text-decoration: none;
+  color: var(--foreground);
+}
+
+/* Signature + spaced caps on one baseline: the caps are lifted by the signature's descender. */
+.wordmark {
+  --mark: 46px;
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.wordmark-signature {
+  display: block;
+  height: var(--mark);
+  width: auto;
+}
+
+.wordmark-foundation {
+  margin-bottom: calc(var(--mark) * var(--descender));
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  line-height: 1;
 }
 
 /* Sections as tabs: icon, name and a live count; the current one is marked. */
@@ -128,6 +151,21 @@ main {
     display: none;
   }
 
+  .wordmark {
+    --mark: 36px;
+    gap: 0.45rem;
+  }
+
+  .wordmark-foundation {
+    font-size: 0.62rem;
+    letter-spacing: 0.24em;
+  }
+
+  /* "testnet" alone on phones, so the signature has room. */
+  .network-chain {
+    display: none;
+  }
+
   .bottom-bar {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -171,6 +209,17 @@ main {
   /* Room for the bar, so the footer isn't hidden under it. */
   body {
     padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* The smallest phones (320 px): a slightly smaller signature so the testnet pill stays on the same line. */
+@media (max-width: 22.5rem) {
+  .wordmark {
+    --mark: 31px;
+  }
+
+  .wordmark-foundation {
+    letter-spacing: 0.16em;
   }
 }
 
