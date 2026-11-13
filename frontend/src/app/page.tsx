@@ -36,10 +36,11 @@ export default async function Home() {
 
   return (
     <>
-      <h1>Raisonné Foundation</h1>
+      {/* The header already carries the name; the heading says what the fund is. */}
+      <h1>A closed-end art fund, governed on chain</h1>
       <p className="lede">
-        A closed-end art fund on Sepolia. Shareholders vote on acquisitions; each acquisition commits a Merkle root of
-        its artworks on chain, and the tree is published on IPFS so anyone can rebuild the root and check it.
+        Shareholders vote on acquisitions; each acquisition commits a Merkle root of its artworks on chain, and the tree
+        is published on IPFS so anyone can rebuild the root and check it.
       </p>
       <AsOf snapshot={snapshot} />
 
