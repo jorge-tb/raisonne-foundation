@@ -7,12 +7,35 @@ import { createClient, DEPLOYMENT_BLOCK, LOG_EMITTERS, scanLogs } from "../chain
 import { discoverLogBlocks } from "../discovery";
 import { getGalleries } from "../galleries";
 import { DEFAULT_IPFS_GATEWAY } from "../gallery";
+import { fetchMetadata, type MetadataFetch } from "../metadata";
 import { getProposals, type ProposalState } from "../proposals";
 import { verifyAction } from "../verify";
+import { analyseImage } from "./image";
 
 const FINAL_STATES: ProposalState[] = ["Defeated", "Canceled", "Executed", "Expired"];
 
 export const ipfsGateway = () => process.env.IPFS_GATEWAY || DEFAULT_IPFS_GATEWAY;
+
+// A file under a CID never changes, so a good read is cached long and failures are retried within a
+// minute (re-pinning fixes "unpinned"). The snapshot's own cacheLife is explicit, so this doesn't
+// shorten it. On Vercel the in-memory cache doesn't survive a revalidation, so each snapshot
+// regeneration refetches: small files only (metadata JSON, image previews of a few kB).
+async function getMetadata(cid: string, gateway: string) {
+  "use cache";
+  const result = await fetchMetadata(cid, gateway);
+  if (result.status === "ok") cacheLife("max");
+  else cacheLife("minutes");
+  return result;
+}
+
+// Same rule for an image's proportions and colour, read from a small preview (see image.ts).
+async function getImageInfo(cid: string, gateway: string) {
+  "use cache";
+  const info = await analyseImage(new URL(cid, gateway).href);
+  if (info) cacheLife("max");
+  else cacheLife("minutes");
+  return info;
+}
 
 // viem errors embed the RPC URL (API key) and the discovery URL carries the Etherscan key.
 // Log a redacted message server-side and throw a generic one.
@@ -58,6 +81,23 @@ async function load() {
     })),
   );
 
+  const withImage = async (metadata: MetadataFetch) => ({
+    metadata,
+    image: metadata.status === "ok" && metadata.artwork.imageCid ? await getImageInfo(metadata.artwork.imageCid, ipfsGateway()) : null,
+  });
+  const tokens = await Promise.all(
+    galleries.flatMap((g) =>
+      g.minted.map(async (m) => ({
+        id: m.tokenId,
+        galleryRoot: g.root,
+        cid: m.cid,
+        mintTransactionHash: m.transactionHash,
+        owner: await client.readContract({ ...ArtRegistry, functionName: "ownerOf", args: [m.tokenId], blockNumber: head.number }),
+        ...(await withImage(await getMetadata(m.cid, ipfsGateway()))),
+      })),
+    ),
+  );
+
   return {
     blockNumber: head.number,
     blockTimestamp: head.timestamp,
@@ -65,7 +105,7 @@ async function load() {
     proposals: verified.reverse(), // newest first
     capTable,
     galleries,
-    mintedTokenIds: galleries.flatMap((g) => g.minted.map((m) => m.tokenId)),
+    tokens: tokens.sort((a, b) => (a.id < b.id ? -1 : 1)),
   };
 }
 
@@ -85,3 +125,4 @@ export async function getSnapshot() {
 
 export type Snapshot = Awaited<ReturnType<typeof getSnapshot>>;
 export type SnapshotProposal = Snapshot["proposals"][number];
+export type SnapshotToken = Snapshot["tokens"][number];
