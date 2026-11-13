@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isAddressEqual } from "viem";
+import { decisionStep, Provenance } from "@/components/Provenance";
 import { AddressLink, AsOf, External, Hash } from "@/components/ui";
 import { FundTreasury } from "@/generated/contracts";
-import { etherscanTx } from "@/lib/format";
+import { etherscanTx, etherscanTxLogs } from "@/lib/format";
 import { REISSUED_AS } from "@/lib/metadata";
 import { getSnapshot, ipfsGateway } from "@/lib/server/snapshot";
 import { ArtworkImage } from "../ArtworkImage";
@@ -20,14 +21,14 @@ async function findToken(id: string) {
   return { snapshot, token };
 }
 
-export async function generateMetadata(props: PageProps<"/artworks/[id]">): Promise<Metadata> {
+export async function generateMetadata(props: PageProps<"/collection/[id]">): Promise<Metadata> {
   const { id } = await props.params;
   const { token } = await findToken(id);
   const name = token?.metadata.status === "ok" ? token.metadata.artwork.name : null;
   return { title: name ? `#${id} ${name}` : `Artwork #${id}` };
 }
 
-export default async function ArtworkPage(props: PageProps<"/artworks/[id]">) {
+export default async function ArtworkPage(props: PageProps<"/collection/[id]">) {
   const { id } = await props.params;
   const { snapshot, token } = await findToken(id);
   if (!token) notFound();
@@ -37,11 +38,13 @@ export default async function ArtworkPage(props: PageProps<"/artworks/[id]">) {
   const artwork = m.status === "ok" ? m.artwork : null;
   const reissuedAs = REISSUED_AS[id];
   const reissueOf = Object.entries(REISSUED_AS).find(([, to]) => to === token.id)?.[0];
+  const gallery = snapshot.galleries.find((g) => g.root === token.galleryRoot);
+  const source = snapshot.proposals.find((p) => p.id === gallery?.sourceProposalId);
 
   return (
     <>
       <p className="small">
-        <Link href="/artworks">← Artworks</Link>
+        <Link href="/collection">← Collection</Link>
       </p>
       <h1>
         #{id} {artwork?.name ?? <span className="muted">title unavailable</span>}
@@ -54,11 +57,11 @@ export default async function ArtworkPage(props: PageProps<"/artworks/[id]">) {
           {reissuedAs ? (
             <>
               minted with a placeholder instead of an image, and reissued as{" "}
-              <Link href={`/artworks/${reissuedAs}`}>#{reissuedAs.toString()}</Link>.
+              <Link href={`/collection/${reissuedAs}`}>#{reissuedAs.toString()}</Link>.
             </>
           ) : (
             <>
-              reissue of <Link href={`/artworks/${reissueOf}`}>#{reissueOf}</Link>, which was minted with a placeholder
+              reissue of <Link href={`/collection/${reissueOf}`}>#{reissueOf}</Link>, which was minted with a placeholder
               instead of an image.
             </>
           )}
@@ -87,17 +90,39 @@ export default async function ArtworkPage(props: PageProps<"/artworks/[id]">) {
         </div>
       </div>
 
+      <Provenance
+        current={2}
+        steps={[
+          decisionStep(source),
+          {
+            label: "Acquired",
+            title: <Link href={`/acquisitions/${token.galleryRoot}`}>Root committed on chain</Link>,
+            detail: (
+              <>
+                <Hash>{token.galleryRoot}</Hash>
+                {gallery && (
+                  <>
+                    {" "}
+                    · <External href={etherscanTxLogs(gallery.added.transactionHash)}>GalleryAdded event</External>
+                  </>
+                )}
+              </>
+            ),
+          },
+          {
+            label: "Collected",
+            title: `Token #${id} minted with a proof against that root`,
+            detail: <External href={etherscanTx(token.mintTransactionHash)}>mint transaction</External>,
+          },
+        ]}
+      />
+
       <h2>On chain and on IPFS</h2>
       <dl className="compact">
         <dt>Owner</dt>
         <dd>
           <AddressLink address={token.owner} />
           {isAddressEqual(token.owner, FundTreasury.address) && <span className="muted"> · FundTreasury (the fund)</span>}
-        </dd>
-        <dt>Minted</dt>
-        <dd>
-          <External href={etherscanTx(token.mintTransactionHash)}>mint transaction</External> · from{" "}
-          <Link href={`/galleries/${token.galleryRoot}`}>gallery</Link> <Hash>{token.galleryRoot}</Hash>
         </dd>
         <dt>Metadata</dt>
         <dd>

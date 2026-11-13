@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { decisionStep, Provenance } from "@/components/Provenance";
 import { AsOf, External, Hash, StateLabel } from "@/components/ui";
 import { ArtRegistry } from "@/generated/contracts";
 import { etherscanTx, etherscanTxLogs, proposalTitle } from "@/lib/format";
@@ -21,12 +22,12 @@ async function findGallery(root: string) {
   return { snapshot, gallery };
 }
 
-export async function generateMetadata(props: PageProps<"/galleries/[root]">): Promise<Metadata> {
+export async function generateMetadata(props: PageProps<"/acquisitions/[root]">): Promise<Metadata> {
   const { root } = await props.params;
-  return { title: `Gallery ${root}` };
+  return { title: `Acquisition ${root}` };
 }
 
-export default async function GalleryPage(props: PageProps<"/galleries/[root]">) {
+export default async function AcquisitionPage(props: PageProps<"/acquisitions/[root]">) {
   const { root } = await props.params;
   const { snapshot, gallery } = await findGallery(root);
   if (!gallery) notFound();
@@ -37,10 +38,29 @@ export default async function GalleryPage(props: PageProps<"/galleries/[root]">)
   return (
     <>
       <p className="small">
-        <Link href="/galleries">← Galleries</Link>
+        <Link href="/acquisitions">← Acquisitions</Link>
       </p>
-      <h1>{source ? proposalTitle(source.description) : "Gallery"}</h1>
+      <h1>{source ? proposalTitle(source.description) : "Acquisition"}</h1>
       <AsOf snapshot={snapshot} />
+
+      <Provenance
+        current={1}
+        steps={[
+          decisionStep(source),
+          { label: "Acquired", title: "This root, committed on chain", detail: <Hash>{gallery.root}</Hash> },
+          {
+            label: "Collected",
+            title:
+              gallery.minted.length === 0 ? (
+                "Nothing minted yet"
+              ) : (
+                <Link href={`/collection#${gallery.root}`}>
+                  {gallery.minted.length} {gallery.minted.length === 1 ? "work" : "works"} minted from it
+                </Link>
+              ),
+          },
+        ]}
+      />
 
       <dl className="compact">
         <dt>Root (on chain)</dt>
@@ -84,13 +104,13 @@ export default async function GalleryPage(props: PageProps<"/galleries/[root]">)
           <ul className="plain">
             {proposals.map((p) => (
               <li key={p.id.toString()}>
-                <StateLabel state={p.state} /> <Link href={`/proposals#${p.id}`}>{proposalTitle(p.description)}</Link>
+                <StateLabel state={p.state} /> <Link href={`/governance#${p.id}`}>{proposalTitle(p.description)}</Link>
                 {p.id === gallery.sourceProposalId && <span className="muted"> (tree CID taken from this one)</span>}
               </li>
             ))}
           </ul>
         </dd>
-        <dt>Minted from this gallery</dt>
+        <dt>Minted from this acquisition</dt>
         <dd>
           {gallery.minted.length === 0 ? (
             "none"
@@ -98,7 +118,7 @@ export default async function GalleryPage(props: PageProps<"/galleries/[root]">)
             <ul className="plain">
               {gallery.minted.map((m) => (
                 <li key={m.tokenId.toString()}>
-                  <Link href={`/artworks/${m.tokenId}`}>#{m.tokenId.toString()}</Link> · <External href={etherscanTx(m.transactionHash)}>mint transaction</External>
+                  <Link href={`/collection/${m.tokenId}`}>#{m.tokenId.toString()}</Link> · <External href={etherscanTx(m.transactionHash)}>mint transaction</External>
                 </li>
               ))}
             </ul>

@@ -34,7 +34,7 @@ a {
 }
 
 main,
-.site-header nav,
+.site-header-inner,
 .site-footer {
   max-width: 64rem;
   margin: 0 auto;
@@ -51,19 +51,127 @@ main {
   border-bottom: 1px solid var(--rule);
 }
 
-.site-header nav {
+.site-header-inner {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.25rem;
-  align-items: baseline;
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
+  gap: 0.5rem 1.25rem;
+  align-items: center;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 
 .site-header .brand {
   font-weight: 700;
   margin-right: auto;
   text-decoration: none;
+}
+
+/* Sections as tabs: icon, name and a live count; the current one is marked. */
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.7rem;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+
+.tab:hover {
+  color: var(--foreground);
+}
+
+.tab[aria-current="page"] {
+  color: var(--foreground);
+  font-weight: 600;
+  border-bottom-color: var(--foreground);
+}
+
+.tab-count {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 400;
+  padding: 0 0.35rem;
+  border: 1px solid var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+
+.vote-open {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0 0.35rem;
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.network {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--muted);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Phones: the sections move to a bar at the bottom of the screen. */
+.bottom-bar {
+  display: none;
+}
+
+@media (max-width: 40rem) {
+  .tabs {
+    display: none;
+  }
+
+  .bottom-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--background);
+    border-top: 1px solid var(--rule);
+  }
+
+  .bottom-bar a {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 0.15rem;
+    padding: 0.55rem 0 0.45rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  .bottom-bar a[aria-current="page"] {
+    color: var(--foreground);
+    font-weight: 600;
+    box-shadow: inset 0 2px 0 var(--foreground);
+  }
+
+  .vote-dot {
+    position: absolute;
+    top: 0.45rem;
+    left: calc(50% + 0.45rem);
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--foreground);
+  }
+
+  /* Room for the bar, so the footer isn't hidden under it. */
+  body {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .site-footer {
@@ -309,6 +417,149 @@ button {
 .rebuild-result {
   border-left: 3px solid var(--foreground);
   padding-left: 1rem;
+}
+
+/* Provenance: vote → root → token, as a numbered chain; the step the page is about is marked. */
+.provenance {
+  list-style: none;
+  counter-reset: step;
+  margin: 0.75rem 0 2rem;
+  padding: 0;
+  display: grid;
+}
+
+.provenance li {
+  counter-increment: step;
+  position: relative;
+  display: grid;
+  gap: 0.1rem;
+  padding: 0 0 1.1rem 2.4rem;
+  min-width: 0;
+}
+
+/* The step number in a circle, and the line joining the steps. */
+.provenance li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--foreground);
+  border-radius: 50%;
+  font: 600 0.75rem ui-monospace, Consolas, monospace;
+  background: var(--background);
+}
+
+.provenance li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: calc(0.8rem - 0.5px);
+  top: 1.6rem;
+  bottom: 0;
+  border-left: 1px solid var(--rule);
+}
+
+.provenance li[aria-current="step"]::before {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.provenance-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.provenance-title {
+  font-weight: 600;
+}
+
+/* Home: one door per section, each showing what's inside right now. The collection door is the
+   largest: the paintings lead. */
+.doors {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 1rem;
+  margin: 1.5rem 0 2.5rem;
+}
+
+.door {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+  min-width: 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--rule);
+  text-decoration: none;
+  transition: border-color 0.2s ease;
+}
+
+.door:hover,
+.door:focus-visible {
+  border-color: var(--foreground);
+}
+
+/* Spans both rows; the paintings sit at the top and the caption at the bottom. */
+.door-collection {
+  grid-row: span 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.door-caption {
+  margin-top: auto;
+}
+
+.door-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* One row of paintings: those that don't fit wrap to a second row, which is clipped, so none is cut in half. */
+.door-strip {
+  --strip: 180px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  height: var(--strip);
+  overflow: hidden;
+  margin: 0.25rem 0;
+}
+
+.door-strip img {
+  flex: none;
+  height: var(--strip);
+  width: auto;
+}
+
+.door-go {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.door:hover .door-go {
+  text-decoration: underline;
+}
+
+@media (max-width: 40rem) {
+  .doors {
+    grid-template-columns: 1fr;
+  }
+
+  .door-collection {
+    grid-row: auto;
+  }
+
+  .door-strip {
+    --strip: 96px;
+  }
 }
 
 /* Artworks wall: justified rows at true proportions. Each work grows and starts from a basis set by
