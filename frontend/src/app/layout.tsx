@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteNav, type SectionCounts } from "@/components/SiteNav";
+import { Wordmark } from "@/components/Wordmark";
 import { getSnapshot } from "@/lib/server/snapshot";
 import "./globals.css";
 
@@ -33,10 +34,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <header className="site-header">
           <div className="site-header-inner">
             <Link href="/" className="brand">
-              Raisonné Foundation
+              <Wordmark />
             </Link>
             <SiteNav counts={counts} />
-            <span className="network">Sepolia testnet</span>
+            <span className="network">
+              <span className="network-chain">Sepolia </span>testnet
+            </span>
           </div>
         </header>
         <main>{children}</main>
