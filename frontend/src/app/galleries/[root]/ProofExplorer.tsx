@@ -143,9 +143,9 @@ export function ProofExplorer(props: Props) {
       </p>
       {footer}
       <p className="muted small">
-        Leaf = keccak256(bytes.concat(keccak256(abi.encode(tokenId, cid)))). Tree built like Murky: leaves in file order,
-        odd node paired with bytes32(0), each pair sorted before hashing. Proofs are checked with the same sorted-pair
-        rule as OpenZeppelin MerkleProof, which ArtRegistry uses.
+        Leaf = <code>keccak256(bytes.concat(keccak256(abi.encode(tokenId, cid))))</code>. Tree built like Murky: leaves in
+        file order, odd node paired with <code>bytes32(0)</code>, each pair sorted before hashing. Proofs are checked with
+        the same sorted-pair rule as OpenZeppelin MerkleProof, which ArtRegistry uses.
       </p>
 
       <h3>Leaves ({tree.leaves.length})</h3>
