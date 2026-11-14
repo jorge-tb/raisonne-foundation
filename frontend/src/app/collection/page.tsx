@@ -7,12 +7,12 @@ import { attribute, REISSUED_AS } from "@/lib/metadata";
 import { getSnapshot, ipfsGateway, type SnapshotToken } from "@/lib/server/snapshot";
 import { ArtworkImage, aspectRatio } from "./ArtworkImage";
 
-export const metadata: Metadata = { title: "Artworks" };
+export const metadata: Metadata = { title: "Collection" };
 
 // Row height the wall aims for on wide screens (--row in globals.css); used here only to size images.
 const ROW_PX = 220;
 
-export default async function ArtworksPage() {
+export default async function CollectionPage() {
   const snapshot = await getSnapshot();
   const gateway = ipfsGateway();
   const groups = snapshot.galleries
@@ -25,7 +25,7 @@ export default async function ArtworksPage() {
 
   return (
     <>
-      <h1>Artworks</h1>
+      <h1>Collection</h1>
       <p className="lede">
         Every artwork the fund has minted, grouped by the acquisition that added it. Titles and images come from each
         token&apos;s metadata on IPFS, at the CID recorded on chain when it was minted.
