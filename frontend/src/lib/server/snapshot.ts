@@ -7,7 +7,7 @@ import { createClient, DEPLOYMENT_BLOCK, LOG_EMITTERS, scanLogs } from "../chain
 import { discoverLogBlocks } from "../discovery";
 import { getGalleries } from "../galleries";
 import { DEFAULT_IPFS_GATEWAY } from "../gallery";
-import { fetchMetadata, type MetadataFetch } from "../metadata";
+import { fetchMetadata, REISSUED_AS, type MetadataFetch } from "../metadata";
 import { getProposals, type ProposalState } from "../proposals";
 import { verifyAction } from "../verify";
 import { analyseImage } from "./image";
@@ -93,7 +93,11 @@ async function load() {
         cid: m.cid,
         mintTransactionHash: m.transactionHash,
         owner: await client.readContract({ ...ArtRegistry, functionName: "ownerOf", args: [m.tokenId], blockNumber: head.number }),
-        ...(await withImage(await getMetadata(m.cid, ipfsGateway()))),
+        // Reissued tokens were reissued because their metadata was never pinned. Failures aren't cached,
+        // so asking would cost a gateway request on every regeneration.
+        ...(m.tokenId.toString() in REISSUED_AS
+          ? { metadata: { status: "unpinned" } as MetadataFetch, image: null }
+          : await withImage(await getMetadata(m.cid, ipfsGateway()))),
       })),
     ),
   );
