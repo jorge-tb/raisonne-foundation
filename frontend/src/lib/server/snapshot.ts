@@ -3,6 +3,7 @@ import { cacheLife } from "next/cache";
 import type { Hex } from "viem";
 import { ArtRegistry, CHAIN_ID } from "@/generated/contracts";
 import { getCapTable } from "../capTable";
+import { getContractsState } from "../contracts";
 import { createClient, DEPLOYMENT_BLOCK, LOG_EMITTERS, scanLogs } from "../chain";
 import { discoverLogBlocks } from "../discovery";
 import { getGalleries } from "../galleries";
@@ -60,7 +61,11 @@ async function load() {
   const scan = await scanLogs(client, { toBlock: head.number, blocks });
 
   const proposals = await getProposals(client, scan);
-  const [capTable, galleries] = await Promise.all([getCapTable(client, scan), getGalleries(client, scan, proposals)]);
+  const [capTable, galleries, contracts] = await Promise.all([
+    getCapTable(client, scan),
+    getGalleries(client, scan, proposals),
+    getContractsState(client, head.number),
+  ]);
 
   const enabledAt = async (root: Hex) =>
     client.readContract({ ...ArtRegistry, functionName: "isGalleryEnabled", args: [root], blockNumber: head.number });
@@ -108,6 +113,7 @@ async function load() {
     logSource: blocks ? ("etherscan" as const) : ("rpc" as const),
     proposals: verified.reverse(), // newest first
     capTable,
+    contracts,
     galleries,
     tokens: tokens.sort((a, b) => (a.id < b.id ? -1 : 1)),
   };
