@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { ContractGlyph, type ContractKind } from "@/components/ContractGlyph";
 import { ContractsDiagram, type DiagramContract } from "@/components/ContractsDiagram";
+import { ContractsIntro, type IntroData } from "@/components/ContractsIntro";
 import { GovernanceNav } from "@/components/GovernanceNav";
 import { holdersData } from "@/components/holders/views";
 import { AddressLink, AsOf, External } from "@/components/ui";
 import { ADDRESSES } from "@/generated/contracts";
 import type { GuaranteeKey } from "@/lib/contracts";
-import { etherscanCode, etherscanTx, formatDuration as duration } from "@/lib/format";
+import { formatEther } from "viem";
+import { etherscanCode, etherscanTx, formatDuration as duration, proposalTitle } from "@/lib/format";
 import { getSnapshot } from "@/lib/server/snapshot";
 
 export const metadata: Metadata = { title: "Contracts" };
@@ -92,6 +94,21 @@ export default async function ContractsPage() {
   const diagram: DiagramContract[] = CONTRACTS.map((c) => ({ ...c, address: ADDRESSES[c.kind] }));
   const failing = contracts.guarantees.filter((g) => g.status === "fail").length;
 
+  // The intro replays the fund's own history: its founding round and its latest acquisition.
+  const latest = snapshot.galleries.at(-1);
+  const source = latest && snapshot.proposals.find((p) => p.id === latest.sourceProposalId);
+  const intro: IntroData | null =
+    capTable && latest && source
+      ? {
+          holders: capTable.holders.toSorted((a, b) => a.slot - b.slot).map((h) => ({ address: h.address, slot: h.slot, share: Number(h.bps) / 10_000 })),
+          supplyEth: formatEther(capTable.supply),
+          quorum: Number(capTable.quorum.numerator) / Number(capTable.quorum.denominator),
+          delaySeconds: Number(contracts.params.minDelay),
+          // "Acquisition 002 - corrects tokens …": the name before the dash.
+          acquisition: { title: proposalTitle(source.description).split(/\s[-–—]\s/)[0], artworks: latest.minted.length },
+        }
+      : null;
+
   return (
     <>
       <h1>Contracts</h1>
@@ -103,7 +120,14 @@ export default async function ContractsPage() {
       </p>
       <AsOf snapshot={snapshot} />
 
-      <section>
+      {intro && (
+        <section id="intro" className="intro-section">
+          <h2>A decision, start to finish</h2>
+          <ContractsIntro data={intro} />
+        </section>
+      )}
+
+      <section id="chain-of-command">
         <h2>Chain of command</h2>
         <ContractsDiagram contracts={diagram} holders={holders.map((h) => ({ address: h.address, slot: h.slot }))} />
       </section>

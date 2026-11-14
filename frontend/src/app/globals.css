@@ -1624,3 +1624,182 @@ dl.params dd {
   border-top: 1px solid var(--rule);
   font-weight: 600;
 }
+
+/* Contracts page intro (ContractsIntro): one stage per layout, the container query shows one, so a
+   phone never draws the wide stage first. */
+.intro {
+  container-type: inline-size;
+  display: grid;
+  gap: 0.9rem;
+  padding: clamp(0.75rem, 3vw, 1.5rem);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+.intro-stage {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--background);
+  border: 1px solid var(--rule);
+}
+
+.intro-portrait {
+  display: none;
+}
+
+@container (max-width: 559px) {
+  .intro-landscape {
+    display: none;
+  }
+
+  .intro-portrait {
+    display: block;
+  }
+}
+
+.intro-stage text {
+  fill: var(--foreground);
+  font-family: var(--ui);
+}
+
+.intro-stage .lbl {
+  font: 500 11px var(--mono);
+  fill: var(--muted);
+}
+
+.intro-stage .lbl.ink {
+  fill: var(--foreground);
+}
+
+.intro-stage .accent {
+  fill: var(--accent);
+}
+
+.intro-stage .title {
+  font: 600 15px var(--ui);
+}
+
+.intro-stage .big {
+  font: 700 22px var(--ui);
+  letter-spacing: -0.5px;
+}
+
+.intro-stage .bal {
+  font: 600 14px var(--mono);
+}
+
+.intro-stage .passed {
+  font: 600 13px var(--ui);
+  fill: var(--accent);
+}
+
+.intro-stage .final-sub {
+  fill: var(--muted);
+}
+
+.intro-stage .glyph {
+  color: var(--accent);
+}
+
+.intro-stage .card-box,
+.intro-stage .final-box {
+  fill: var(--surface);
+  stroke: var(--rule);
+}
+
+.intro-stage .final-box {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.intro-stage .track {
+  fill: var(--rule);
+}
+
+.intro-stage .qline {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.intro-stage .coin,
+.intro-stage .art,
+.intro-stage .card,
+.intro-stage .seg,
+.intro-stage .final {
+  transform-box: fill-box;
+}
+
+.intro-stage .seg {
+  transform-origin: left center;
+}
+
+.intro-stage .final {
+  transform-origin: center;
+}
+
+.intro-stage .art {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 1.4;
+}
+
+.intro-caption {
+  min-height: 3.2rem;
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  max-width: 44rem;
+}
+
+.intro-caption small {
+  display: block;
+  margin-bottom: 0.15rem;
+  font: 500 0.7rem var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.intro-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+.intro-controls > button {
+  font-weight: 600;
+}
+
+.intro-play {
+  color: var(--surface);
+  background: var(--foreground);
+}
+
+.intro-dots {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.intro-dots button {
+  width: 1.6rem;
+  height: 0.45rem;
+  padding: 0;
+  border: 0;
+  background: var(--rule);
+}
+
+.intro-dots button.done {
+  background: color-mix(in srgb, var(--accent) 45%, var(--rule));
+}
+
+.intro-dots button[aria-current="step"] {
+  background: var(--accent);
+}
+
+.intro-skip {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
