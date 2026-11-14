@@ -6,7 +6,7 @@ import { holdersData } from "@/components/holders/views";
 import { AddressLink, AsOf, External } from "@/components/ui";
 import { ADDRESSES } from "@/generated/contracts";
 import type { GuaranteeKey } from "@/lib/contracts";
-import { etherscanCode, etherscanTx } from "@/lib/format";
+import { etherscanCode, etherscanTx, formatDuration as duration } from "@/lib/format";
 import { getSnapshot } from "@/lib/server/snapshot";
 
 export const metadata: Metadata = { title: "Contracts" };
@@ -84,11 +84,6 @@ const GUARANTEES: Record<GuaranteeKey, { title: string; check: string; how: stri
 };
 
 const MARK = { ok: "✓", fail: "✕", warn: "!" } as const;
-
-const duration = (seconds: bigint) => {
-  const s = Number(seconds);
-  return s % 86_400 === 0 ? `${s / 86_400} day${s === 86_400 ? "" : "s"}` : s % 3600 === 0 ? `${s / 3600} h` : s % 60 === 0 ? `${s / 60} min` : `${s} s`;
-};
 
 export default async function ContractsPage() {
   const snapshot = await getSnapshot();

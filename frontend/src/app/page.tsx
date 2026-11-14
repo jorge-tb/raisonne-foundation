@@ -1,28 +1,21 @@
 import Image from "next/image";
 import Link from "next/link";
-import { isAddressEqual } from "viem";
+import { formatEther, isAddressEqual } from "viem";
+import { ContractGlyph } from "@/components/ContractGlyph";
 import { HoldersEmblem } from "@/components/holders/HoldersEmblem";
 import { holdersData } from "@/components/holders/views";
 import { AcquisitionsIcon, CollectionIcon, GovernanceIcon } from "@/components/icons";
-import { AddressLink, AsOf, External, Hash, StateLabel } from "@/components/ui";
-import { ArtRegistry, FundGovernor, FundShare, FundTreasury, TimelockController } from "@/generated/contracts";
-import { etherscanCode, formatTimestamp, proposalTitle } from "@/lib/format";
+import { AsOf, Hash, StateLabel } from "@/components/ui";
+import { FundTreasury } from "@/generated/contracts";
+import { formatDuration, formatTimestamp, proposalTitle } from "@/lib/format";
 import { getSnapshot, ipfsGateway } from "@/lib/server/snapshot";
-
-const CONTRACTS = [
-  ["FundShare", FundShare.address, "ERC-20 votes token: one share per wei subscribed"],
-  ["FundGovernor", FundGovernor.address, "Proposals and voting"],
-  ["TimelockController", TimelockController.address, "Executes passed proposals after a delay"],
-  ["ArtRegistry", ArtRegistry.address, "Acquisition roots (galleries) and minted artworks"],
-  ["FundTreasury", FundTreasury.address, "Treasury (UUPS proxy)"],
-] as const;
 
 // Height of the paintings in the collection door (desktop); widths follow each image's proportions.
 const STRIP_PX = 180;
 
 export default async function Home() {
   const snapshot = await getSnapshot();
-  const { proposals, galleries, tokens } = snapshot;
+  const { proposals, galleries, tokens, capTable, contracts } = snapshot;
   const gateway = ipfsGateway();
   const held = tokens.filter((t) => isAddressEqual(t.owner, FundTreasury.address)).length;
   const strip = tokens
@@ -110,24 +103,54 @@ export default async function Home() {
         </Link>
       </div>
 
-      <section>
-        <h2>Contracts</h2>
-        <p className="muted small">
-          How they hold each other in check, with every guarantee read from the chain:{" "}
-          <Link href="/contracts">the contracts page →</Link>
+      {/* How the fund decides, in plain words; the addresses and proofs are on the Contracts page.
+          The figures are read from the chain like everything else on the page. */}
+      <section className="how" aria-labelledby="how-title">
+        <h2 id="how-title">How the fund decides</h2>
+        <ol className="how-steps">
+          <li>
+            <span className="how-icon">
+              <ContractGlyph kind="FundShare" />
+            </span>
+            <b>Shareholders hold the fund</b>
+            <span>
+              {capTable
+                ? `${capTable.holders.length} shareholders subscribed ${formatEther(capTable.supply)} ETH. `
+                : ""}
+              Each share is a vote once its holder delegates it.
+            </span>
+          </li>
+          <li>
+            <span className="how-icon">
+              <ContractGlyph kind="FundGovernor" />
+            </span>
+            <b>They vote on proposals</b>
+            <span>
+              Any holder can propose an acquisition.
+              {capTable &&
+                ` At least ${Math.round((Number(capTable.quorum.numerator) / Number(capTable.quorum.denominator)) * 100)}% of all shares must vote.`}
+            </span>
+          </li>
+          <li>
+            <span className="how-icon">
+              <ContractGlyph kind="TimelockController" />
+            </span>
+            <b>Decisions wait</b>
+            <span>
+              A passed proposal waits {formatDuration(contracts.params.minDelay)} in the timelock before it can run.
+            </span>
+          </li>
+          <li>
+            <span className="how-icon">
+              <ContractGlyph kind="FundTreasury" />
+            </span>
+            <b>Then they run, as voted</b>
+            <span>The treasury pays, or the registry adds a gallery. Nothing moves any other way.</span>
+          </li>
+        </ol>
+        <p className="how-more">
+          <Link href="/contracts">See the contracts that enforce it →</Link>
         </p>
-        <dl>
-          {CONTRACTS.map(([name, address, role]) => (
-            <div key={name}>
-              <dt>
-                {name} <span className="muted">· {role}</span>
-              </dt>
-              <dd>
-                <AddressLink address={address} /> · <External href={etherscanCode(address)}>verified source</External>
-              </dd>
-            </div>
-          ))}
-        </dl>
       </section>
     </>
   );
