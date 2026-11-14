@@ -92,7 +92,7 @@ main {
 .site-header-inner {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
+  gap: 0.5rem 0.75rem;
   align-items: center;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
@@ -130,14 +130,14 @@ main {
 /* Sections as tabs: icon, name and a live count; the current one is marked. */
 .tabs {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.1rem;
 }
 
 .tab {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.5rem 0.7rem;
+  gap: 0.35rem;
+  padding: 0.5rem 0.5rem;
   color: var(--muted);
   text-decoration: none;
   border-bottom: 2px solid transparent;
@@ -153,16 +153,6 @@ main {
   border-bottom-color: var(--accent);
 }
 
-.tab-count {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  font-weight: 400;
-  padding: 0 0.35rem;
-  background: var(--yellow);
-  color: var(--on-yellow);
-  font-variant-numeric: tabular-nums;
-}
-
 .vote-open {
   font-size: 0.72rem;
   font-weight: 600;
@@ -171,25 +161,56 @@ main {
   color: var(--surface);
 }
 
-.network {
+/* The environment strip above the header: network and read-only. Neutral, so the yellow stays the brand's. */
+.env-strip {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem max(1rem, env(safe-area-inset-right, 0px)) 0.3rem max(1rem, env(safe-area-inset-left, 0px));
   font-family: var(--mono);
   font-size: 0.72rem;
-  padding: 0.1rem 0.5rem;
-  border: 1px dashed var(--muted);
-  color: var(--foreground);
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+  color: var(--muted);
+  text-align: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
 }
 
-/* The dot that says "this is a test network". Neutral, so the yellow stays the brand's. */
-.network::before {
-  content: "";
+.env-dot {
+  flex: none;
   width: 0.45rem;
   height: 0.45rem;
   border-radius: 50%;
   background: var(--muted);
+}
+
+/* Governance's two pages: Decisions and Contracts. */
+.subnav {
+  display: flex;
+  gap: 1.25rem;
+  margin: 0 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.subnav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0;
+  margin-bottom: -1px;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+
+.subnav a:hover {
+  color: var(--foreground);
+}
+
+.subnav a[aria-current="page"] {
+  color: var(--foreground);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
 }
 
 /* Phones: the sections move to a bar at the bottom of the screen. */
@@ -212,8 +233,8 @@ main {
     letter-spacing: 0.24em;
   }
 
-  /* "testnet" alone on phones, so the signature has room. */
-  .network-chain {
+  /* The short notice on phones: "Sepolia testnet · read-only". */
+  .env-more {
     display: none;
   }
 

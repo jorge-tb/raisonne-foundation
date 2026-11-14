@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ContractGlyph, type ContractKind } from "@/components/ContractGlyph";
 import { ContractsDiagram, type DiagramContract } from "@/components/ContractsDiagram";
+import { GovernanceNav } from "@/components/GovernanceNav";
 import { holdersData } from "@/components/holders/views";
 import { AddressLink, AsOf, External } from "@/components/ui";
 import { ADDRESSES } from "@/generated/contracts";
@@ -99,6 +100,7 @@ export default async function ContractsPage() {
   return (
     <>
       <h1>Contracts</h1>
+      <GovernanceNav current="contracts" />
       <p className="lede">
         Five contracts run the fund. None of them, and no person, can move its money or artworks without a vote that
         passed and waited out the timelock. The diagram shows who can do what; the guarantees below are read from the
