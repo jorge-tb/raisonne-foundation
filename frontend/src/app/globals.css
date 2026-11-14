@@ -1231,6 +1231,20 @@ button {
   font-size: 0.9rem;
 }
 
+/* Home: the ring sits in the Governance door's corner and morphs into the donut on the way there. */
+.door-governance {
+  position: relative;
+  padding-right: 6.5rem;
+}
+
+.holders-emblem {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 84px;
+  height: 84px;
+}
+
 ::view-transition-group(.morph) {
   animation-duration: 450ms;
   animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
