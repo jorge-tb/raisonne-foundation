@@ -1,5 +1,6 @@
 import "server-only";
 import sharp from "sharp";
+import { fetchImmutable } from "../gallery";
 
 // What the wall needs from each image: its proportions, and a colour taken from the painting for
 // the hover glow and caption tint.
@@ -15,7 +16,7 @@ export async function analyseImage(url: string): Promise<ImageInfo | null> {
   try {
     const preview = new URL(url);
     preview.searchParams.set("img-width", String(PREVIEW_WIDTH));
-    const res = await fetch(preview, { signal: AbortSignal.timeout(15_000) });
+    const res = await fetchImmutable(preview);
     if (!res.ok || Number(res.headers.get("content-length") ?? 0) > MAX_PREVIEW_BYTES) return null;
     const bytes = Buffer.from(await res.arrayBuffer());
     if (bytes.length > MAX_PREVIEW_BYTES) return null;

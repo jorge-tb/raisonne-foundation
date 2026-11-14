@@ -7,7 +7,7 @@ import { createClient, DEPLOYMENT_BLOCK, LOG_EMITTERS, scanLogs } from "../chain
 import { discoverLogBlocks } from "../discovery";
 import { getGalleries } from "../galleries";
 import { DEFAULT_IPFS_GATEWAY } from "../gallery";
-import { fetchMetadata, type MetadataFetch } from "../metadata";
+import { fetchMetadata, REISSUED_AS, type MetadataFetch } from "../metadata";
 import { getProposals, type ProposalState } from "../proposals";
 import { verifyAction } from "../verify";
 import { analyseImage } from "./image";
@@ -18,8 +18,8 @@ export const ipfsGateway = () => process.env.IPFS_GATEWAY || DEFAULT_IPFS_GATEWA
 
 // A file under a CID never changes, so a good read is cached long and failures are retried within a
 // minute (re-pinning fixes "unpinned"). The snapshot's own cacheLife is explicit, so this doesn't
-// shorten it. On Vercel the in-memory cache doesn't survive a revalidation, so each snapshot
-// regeneration refetches: small files only (metadata JSON, image previews of a few kB).
+// shorten it. On Vercel the in-memory cache doesn't survive a revalidation, so a regeneration runs
+// these again, but their gateway reads (fetchImmutable) are answered by the persistent fetch cache.
 async function getMetadata(cid: string, gateway: string) {
   "use cache";
   const result = await fetchMetadata(cid, gateway);
@@ -93,7 +93,11 @@ async function load() {
         cid: m.cid,
         mintTransactionHash: m.transactionHash,
         owner: await client.readContract({ ...ArtRegistry, functionName: "ownerOf", args: [m.tokenId], blockNumber: head.number }),
-        ...(await withImage(await getMetadata(m.cid, ipfsGateway()))),
+        // Reissued tokens were reissued because their metadata was never pinned. Failures aren't cached,
+        // so asking would cost a gateway request on every regeneration.
+        ...(m.tokenId.toString() in REISSUED_AS
+          ? { metadata: { status: "unpinned" } as MetadataFetch, image: null }
+          : await withImage(await getMetadata(m.cid, ipfsGateway()))),
       })),
     ),
   );

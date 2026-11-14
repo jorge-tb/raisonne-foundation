@@ -1,4 +1,4 @@
-import { DEFAULT_IPFS_GATEWAY } from "./gallery";
+import { DEFAULT_IPFS_GATEWAY, fetchImmutable } from "./gallery";
 
 export type Artwork = {
   name: string;
@@ -30,7 +30,7 @@ export function ipfsCid(uri: string): string | null {
 export async function fetchMetadata(cid: string, gateway = DEFAULT_IPFS_GATEWAY): Promise<MetadataFetch> {
   let body: unknown;
   try {
-    const res = await fetch(new URL(cid, gateway), { signal: AbortSignal.timeout(15_000) });
+    const res = await fetchImmutable(new URL(cid, gateway));
     if (res.status === 403) return { status: "unpinned" };
     if (!res.ok) return { status: "unavailable", detail: `HTTP ${res.status}` };
     body = await res.json().catch(() => undefined);

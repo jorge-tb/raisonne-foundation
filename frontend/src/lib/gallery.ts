@@ -16,10 +16,17 @@ export function parseTreeCids(description: string): string[] {
   return [...new Set(cids)];
 }
 
+// Files under a CID never change. On the server, force-cache keeps a 200 response in Next's persistent
+// fetch cache (Vercel's Data Cache, which survives instances and deploys), so later reads of the same
+// CID don't reach the gateway. Failures aren't stored and are retried. In the browser it lets the HTTP
+// cache answer without revalidating.
+export const fetchImmutable = (url: URL | string) =>
+  fetch(url, { cache: "force-cache", signal: AbortSignal.timeout(15_000) });
+
 export async function fetchGallery(cid: string, gateway = DEFAULT_IPFS_GATEWAY): Promise<GalleryFetch> {
   let body: unknown;
   try {
-    const res = await fetch(new URL(cid, gateway), { signal: AbortSignal.timeout(15_000) });
+    const res = await fetchImmutable(new URL(cid, gateway));
     if (!res.ok) return { ok: false, reason: "gateway", detail: `HTTP ${res.status}` };
     body = await res.json().catch(() => undefined);
   } catch (error) {
