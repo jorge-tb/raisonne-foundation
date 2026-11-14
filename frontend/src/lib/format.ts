@@ -27,6 +27,15 @@ const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeS
 export const formatTimestamp = (seconds: number | bigint) => `${dateFormat.format(new Date(Number(seconds) * 1000))} UTC`;
 
 // bps < 10000, so Number() is exact here.
+// A contract duration in seconds, in the largest whole unit: "5 min", "1 h", "2 days".
+export function formatDuration(seconds: bigint): string {
+  const s = Number(seconds);
+  if (s > 0 && s % 86_400 === 0) return `${s / 86_400} day${s === 86_400 ? "" : "s"}`;
+  if (s > 0 && s % 3600 === 0) return `${s / 3600} h`;
+  if (s > 0 && s % 60 === 0) return `${s / 60} min`;
+  return `${s} s`;
+}
+
 export const formatBps = (bps: bigint) => `${(Number(bps) / 100).toFixed(2)}%`;
 
 // First clause of a free-text description, used as a title.
