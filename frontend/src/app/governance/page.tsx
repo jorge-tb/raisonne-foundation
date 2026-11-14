@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { formatEther } from "viem";
 import { CapTable } from "@/components/CapTable";
+import { HolderChip } from "@/components/holders/HolderChip";
+import { HoldersDonut } from "@/components/holders/HoldersDonut";
+import { HoldersProvider } from "@/components/holders/HoldersProvider";
+import { holdersData } from "@/components/holders/views";
 import { AddressLink, AsOf, External, Hash, StateLabel, VerdictLabel } from "@/components/ui";
 import { FundGovernor } from "@/generated/contracts";
 import { etherscanAddress, etherscanTx, formatTimestamp, proposalTitle } from "@/lib/format";
@@ -12,6 +16,26 @@ export const metadata: Metadata = { title: "Governance" };
 
 export default async function GovernancePage() {
   const snapshot = await getSnapshot();
+  const holders = holdersData(snapshot);
+  const body = (
+    <>
+      {holders && (
+        <section className="holders-section">
+          <h2>Who decides</h2>
+          <p className="muted small">
+            Shares vote once delegated. The ring shows each shareholder&apos;s votes as a share of all shares, and the
+            quorum a proposal needs.
+          </p>
+          <HoldersDonut />
+        </section>
+      )}
+      {snapshot.proposals.length === 0 && <p>No proposals yet.</p>}
+      {snapshot.proposals.map((p) => (
+        <ProposalCard key={p.id.toString()} proposal={p} now={snapshot.blockTimestamp} />
+      ))}
+      <CapTable capTable={snapshot.capTable} />
+    </>
+  );
   return (
     <>
       <h1>Governance</h1>
@@ -26,11 +50,7 @@ export default async function GovernancePage() {
         check: this list comes from our server, which could leave a proposal out. It can&apos;t alter or invent one.
       </p>
       <AsOf snapshot={snapshot} />
-      {snapshot.proposals.length === 0 && <p>No proposals yet.</p>}
-      {snapshot.proposals.map((p) => (
-        <ProposalCard key={p.id.toString()} proposal={p} now={snapshot.blockTimestamp} />
-      ))}
-      <CapTable capTable={snapshot.capTable} />
+      {holders ? <HoldersProvider data={holders}>{body}</HoldersProvider> : body}
     </>
   );
 }
@@ -66,7 +86,7 @@ function ProposalCard({ proposal: p, now }: { proposal: SnapshotProposal; now: b
         </dd>
         <dt>Proposer</dt>
         <dd>
-          <AddressLink address={p.proposer} />
+          <HolderChip address={p.proposer} />
         </dd>
         <dt>Created</dt>
         <dd>

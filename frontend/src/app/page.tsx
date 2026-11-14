@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { isAddressEqual } from "viem";
+import { HoldersEmblem } from "@/components/holders/HoldersEmblem";
+import { holdersData } from "@/components/holders/views";
 import { AcquisitionsIcon, CollectionIcon, GovernanceIcon } from "@/components/icons";
 import { AddressLink, AsOf, External, Hash, StateLabel } from "@/components/ui";
 import { ArtRegistry, FundGovernor, FundShare, FundTreasury, TimelockController } from "@/generated/contracts";
@@ -33,6 +35,7 @@ export default async function Home() {
   const latest = proposals[0]; // newest first
   const voteOpen = proposals.some((p) => p.state === "Active");
   const latestRoot = galleries.at(-1);
+  const holders = holdersData(snapshot);
 
   return (
     <>
@@ -64,7 +67,9 @@ export default async function Home() {
           <span className="door-go">View the collection →</span>
         </Link>
 
-        <Link href="/governance" className="door">
+        <Link href="/governance" className="door door-governance">
+          {/* The voting-power ring; it morphs into the Governance page's donut on the way there. */}
+          {holders && <HoldersEmblem data={holders} />}
           <span className="door-head">
             <GovernanceIcon />
             Governance

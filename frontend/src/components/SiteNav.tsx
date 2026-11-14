@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { AcquisitionsIcon, CollectionIcon, FundIcon, GovernanceIcon } from "./icons";
 
 // Counts come from the layout's snapshot; null when the chain couldn't be read (links still work).
@@ -27,6 +27,13 @@ const isCurrent = (pathname: string, href: Section["href"]) =>
 export function SiteNav({ counts }: { counts: SectionCounts }) {
   const pathname = usePathname();
   const items = sections(counts);
+
+  // Marks the document once the visitor has moved inside the app, so entrance animations meant for a
+  // first load (the shareholder ring's reveal) don't replay on every in-app page change.
+  const initialPath = useRef(pathname);
+  useEffect(() => {
+    if (pathname !== initialPath.current) document.documentElement.dataset.navigated = "1";
+  }, [pathname]);
   const voteOpen = counts?.voteOpen ?? false;
 
   return (

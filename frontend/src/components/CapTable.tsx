@@ -1,5 +1,5 @@
 import { formatEther } from "viem";
-import { AddressLink } from "@/components/ui";
+import { HolderChip } from "@/components/holders/HolderChip";
 import { formatBps } from "@/lib/format";
 import type { Snapshot } from "@/lib/server/snapshot";
 
@@ -21,7 +21,7 @@ export function CapTable({ capTable }: { capTable: Snapshot["capTable"] }) {
             {capTable.holders.map((h) => (
               <tr key={h.address}>
                 <td>
-                  <AddressLink address={h.address} />
+                  <HolderChip address={h.address} />
                 </td>
                 <td className="num">{formatEther(h.balance)}</td>
                 <td className="num">
