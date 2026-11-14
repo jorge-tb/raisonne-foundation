@@ -18,8 +18,8 @@ export const ipfsGateway = () => process.env.IPFS_GATEWAY || DEFAULT_IPFS_GATEWA
 
 // A file under a CID never changes, so a good read is cached long and failures are retried within a
 // minute (re-pinning fixes "unpinned"). The snapshot's own cacheLife is explicit, so this doesn't
-// shorten it. On Vercel the in-memory cache doesn't survive a revalidation, so each snapshot
-// regeneration refetches: small files only (metadata JSON, image previews of a few kB).
+// shorten it. On Vercel the in-memory cache doesn't survive a revalidation, so a regeneration runs
+// these again, but their gateway reads (fetchImmutable) are answered by the persistent fetch cache.
 async function getMetadata(cid: string, gateway: string) {
   "use cache";
   const result = await fetchMetadata(cid, gateway);
