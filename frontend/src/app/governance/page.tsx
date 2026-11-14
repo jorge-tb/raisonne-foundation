@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { formatEther } from "viem";
 import { CapTable } from "@/components/CapTable";
+import { GovernanceNav } from "@/components/GovernanceNav";
 import { HolderChip } from "@/components/holders/HolderChip";
 import { HoldersDonut } from "@/components/holders/HoldersDonut";
 import { HoldersProvider } from "@/components/holders/HoldersProvider";
@@ -39,10 +40,12 @@ export default async function GovernancePage() {
   return (
     <>
       <h1>Governance</h1>
+      <GovernanceNav current="decisions" />
       <p className="lede">
         How the fund decides: every proposal created on the Governor, including duplicates and defeated ones, with its
         live state, and who holds the shares that vote. Anyone can propose any calldata, so each action is decoded and
-        checked here rather than trusted.
+        checked here rather than trusted. What makes a passed proposal the only way the fund moves:{" "}
+        <Link href="/contracts">the contracts</Link>.
       </p>
       <p className="small">
         Each proposal is checked twice: by our server (verdicts under <em>Actions</em>) and again in your browser against

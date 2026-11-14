@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Hanken_Grotesk, JetBrains_Mono, Newsreader } from "next/font/google";
 import Link from "next/link";
-import { SiteNav, type SectionCounts } from "@/components/SiteNav";
+import { SiteNav, type NavStatus } from "@/components/SiteNav";
 import { Wordmark } from "@/components/Wordmark";
 import { getSnapshot } from "@/lib/server/snapshot";
 import "./globals.css";
@@ -18,41 +18,41 @@ export const metadata: Metadata = {
   description: "On-chain closed-end art fund on Sepolia: its collection, acquisitions, governance and proofs.",
 };
 
-// Live counts for the navigation, from the same cached snapshot as the pages. If the chain can't be
-// read, the navigation still renders without counts; the page shows the error.
-async function sectionCounts(): Promise<SectionCounts> {
+// Whether a vote is open, for the navigation's badge, from the same cached snapshot as the pages. If the
+// chain can't be read, the navigation still renders; the page shows the error.
+async function navStatus(): Promise<NavStatus> {
   try {
-    const { tokens, galleries, proposals } = await getSnapshot();
-    return {
-      collection: tokens.length,
-      acquisitions: galleries.length,
-      governance: proposals.length,
-      voteOpen: proposals.some((p) => p.state === "Active"),
-    };
+    const { proposals } = await getSnapshot();
+    return { voteOpen: proposals.some((p) => p.state === "Active") };
   } catch {
     return null;
   }
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const counts = await sectionCounts();
+  const status = await navStatus();
   return (
     <html lang="en" className={`${ui.variable} ${title.variable} ${mono.variable}`}>
       <body>
+        {/* What network this is and that the site only reads: it never asks for a wallet, so a look-alike
+            that does is not this site. On mainnet the strip goes; the header doesn't change. */}
+        <div className="env-strip" role="note">
+          <span className="env-dot" aria-hidden="true" />
+          <span>
+            Sepolia testnet · read-only<span className="env-more">, this site never asks for a wallet</span>
+          </span>
+        </div>
         <header className="site-header">
           <div className="site-header-inner">
             <Link href="/" className="brand">
               <Wordmark />
             </Link>
-            <SiteNav counts={counts} />
-            <span className="network">
-              <span className="network-chain">Sepolia </span>testnet
-            </span>
+            <SiteNav status={status} />
           </div>
         </header>
         <main>{children}</main>
         <footer className="site-footer muted small">
-          Sepolia testnet. Read-only: this site never asks for a wallet.
+          Raisonné Foundation, an on-chain art fund. <Link href="/contracts">Contracts</Link>
         </footer>
       </body>
     </html>

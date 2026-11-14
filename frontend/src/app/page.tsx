@@ -112,6 +112,10 @@ export default async function Home() {
 
       <section>
         <h2>Contracts</h2>
+        <p className="muted small">
+          How they hold each other in check, with every guarantee read from the chain:{" "}
+          <Link href="/contracts">the contracts page →</Link>
+        </p>
         <dl>
           {CONTRACTS.map(([name, address, role]) => (
             <div key={name}>

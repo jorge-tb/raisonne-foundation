@@ -30,6 +30,16 @@ export function AcquisitionsIcon() {
   );
 }
 
+// A shield with a check: the contracts and what they guarantee.
+export function ContractsIcon() {
+  return (
+    <svg {...common} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10 2.5 16.5 5v4.8c0 3.9-2.7 6.6-6.5 7.7-3.8-1.1-6.5-3.8-6.5-7.7V5Z" />
+      <path d="M7.2 10 9.2 12 12.8 8.2" />
+    </svg>
+  );
+}
+
 export function GovernanceIcon() {
   return (
     <svg {...common} strokeLinecap="round" strokeLinejoin="round">

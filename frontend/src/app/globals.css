@@ -92,7 +92,7 @@ main {
 .site-header-inner {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.25rem;
+  gap: 0.5rem 0.75rem;
   align-items: center;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
@@ -130,14 +130,14 @@ main {
 /* Sections as tabs: icon, name and a live count; the current one is marked. */
 .tabs {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.1rem;
 }
 
 .tab {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.5rem 0.7rem;
+  gap: 0.35rem;
+  padding: 0.5rem 0.5rem;
   color: var(--muted);
   text-decoration: none;
   border-bottom: 2px solid transparent;
@@ -153,16 +153,6 @@ main {
   border-bottom-color: var(--accent);
 }
 
-.tab-count {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  font-weight: 400;
-  padding: 0 0.35rem;
-  background: var(--yellow);
-  color: var(--on-yellow);
-  font-variant-numeric: tabular-nums;
-}
-
 .vote-open {
   font-size: 0.72rem;
   font-weight: 600;
@@ -171,25 +161,56 @@ main {
   color: var(--surface);
 }
 
-.network {
+/* The environment strip above the header: network and read-only. Neutral, so the yellow stays the brand's. */
+.env-strip {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem max(1rem, env(safe-area-inset-right, 0px)) 0.3rem max(1rem, env(safe-area-inset-left, 0px));
   font-family: var(--mono);
   font-size: 0.72rem;
-  padding: 0.1rem 0.5rem;
-  border: 1px dashed var(--muted);
-  color: var(--foreground);
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+  color: var(--muted);
+  text-align: center;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
 }
 
-/* The dot that says "this is a test network". Neutral, so the yellow stays the brand's. */
-.network::before {
-  content: "";
+.env-dot {
+  flex: none;
   width: 0.45rem;
   height: 0.45rem;
   border-radius: 50%;
   background: var(--muted);
+}
+
+/* Governance's two pages: Decisions and Contracts. */
+.subnav {
+  display: flex;
+  gap: 1.25rem;
+  margin: 0 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.subnav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0;
+  margin-bottom: -1px;
+  color: var(--muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+
+.subnav a:hover {
+  color: var(--foreground);
+}
+
+.subnav a[aria-current="page"] {
+  color: var(--foreground);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
 }
 
 /* Phones: the sections move to a bar at the bottom of the screen. */
@@ -212,8 +233,8 @@ main {
     letter-spacing: 0.24em;
   }
 
-  /* "testnet" alone on phones, so the signature has room. */
-  .network-chain {
+  /* The short notice on phones: "Sepolia testnet · read-only". */
+  .env-more {
     display: none;
   }
 
@@ -1267,5 +1288,277 @@ button {
 
   ::view-transition-group(.morph) {
     animation: none;
+  }
+}
+
+/* Contracts page: the chain of command (ContractsDiagram), the guarantees read on chain, the reference. */
+.contract-glyph {
+  flex: none;
+}
+
+.cmd-wrap {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: clamp(1rem, 3vw, 1.5rem);
+}
+
+.cmd {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 3.2rem 4.25rem;
+  align-items: center;
+}
+
+.cmd-wires {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.cmd-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.75rem 0.8rem;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  transition: border-color 0.2s ease, opacity 0.25s ease;
+}
+
+.cmd-node:hover,
+.cmd-node.on {
+  border-color: var(--accent);
+}
+
+.cmd[data-focus] .cmd-node:not(.on):not(.near) {
+  opacity: 0.35;
+}
+
+.cmd-node b {
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+.cmd-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: var(--accent);
+}
+
+.cmd-role {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.cmd-holders {
+  grid-column: 1;
+  grid-row: 1;
+  border-style: dashed;
+}
+
+.cmd-FundShare {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.cmd-FundGovernor {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.cmd-TimelockController {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.cmd-FundTreasury {
+  grid-column: 5;
+  grid-row: 1;
+}
+
+.cmd-ArtRegistry {
+  grid-column: 4 / span 2;
+  grid-row: 2;
+  justify-self: center;
+  width: min(100%, 15rem);
+}
+
+.cmd-wire path {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: 2;
+  transition: stroke 0.25s ease, opacity 0.25s ease;
+}
+
+.cmd-wire.control path {
+  stroke: var(--muted);
+}
+
+.cmd-wire text {
+  font: 500 10.5px var(--mono);
+  fill: var(--muted);
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+}
+
+.cmd-wire.on path {
+  stroke: var(--accent);
+}
+
+.cmd-wire.on text {
+  fill: var(--accent);
+}
+
+.cmd[data-focus] .cmd-wire:not(.on) {
+  opacity: 0.25;
+}
+
+.cmd-detail {
+  display: grid;
+  gap: 0.3rem;
+  min-height: 5.5rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.cmd-detail p {
+  margin: 0;
+}
+
+@media (max-width: 52rem) {
+  .cmd {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2.2rem;
+    padding-right: 1.4rem;
+  }
+
+  .cmd-holders,
+  .cmd-FundShare,
+  .cmd-FundGovernor,
+  .cmd-TimelockController,
+  .cmd-FundTreasury,
+  .cmd-ArtRegistry {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: stretch;
+    width: auto;
+  }
+
+  .cmd-ArtRegistry {
+    order: 5;
+  }
+
+  .cmd-FundTreasury {
+    order: 6;
+  }
+}
+
+.guarantees {
+  display: grid;
+  gap: 0.6rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guarantee {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.2rem 0.85rem;
+  padding: 0.8rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+.guarantee > :not(.guarantee-mark) {
+  grid-column: 2;
+}
+
+.guarantee-mark {
+  grid-row: span 4;
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--surface);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.guarantee-warn .guarantee-mark {
+  background: var(--yellow);
+  color: var(--on-yellow);
+}
+
+.guarantee-fail {
+  border-color: var(--foreground);
+}
+
+.guarantee-fail .guarantee-mark {
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.guarantee-check {
+  font-size: 0.74rem;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+
+.contract-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+}
+
+.contract-name .contract-glyph {
+  color: var(--accent);
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+dl.params {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: 0.6rem;
+}
+
+dl.params div {
+  padding: 0.6rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+dl.params dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+dl.params dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmd-node,
+  .cmd-wire path {
+    transition: none;
   }
 }
