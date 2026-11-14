@@ -1,6 +1,7 @@
-/* Collection Wall palette: an ink-toned gallery wall that lets the paintings carry the colour, and one
-   accent, ultramarine, the lapis pigment of Vermeer's turban and the Milkmaid's apron. Signal yellow is
-   for the testnet notice only. */
+/* Collection Wall palette: an ink-toned gallery wall that lets the paintings carry the colour, and
+   Vermeer's pair of pigments. Lapis ultramarine (the turban, the Milkmaid's apron) is for links and
+   actions; lead-tin yellow (the Milkmaid's bodice) marks what is counted or highlighted, and never
+   carries text except on its own chips. */
 :root {
   --background: #f3f4f7;
   --surface: #ffffff;
@@ -10,7 +11,8 @@
   --panel: #e8eaf1;
   --accent: #2b3fd4;
   --accent-soft: #e6e9fd;
-  --signal: #e8b21f;
+  --yellow: #f2c230;
+  --on-yellow: #10132a;
   --ui: var(--font-ui), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --title: var(--font-title), Georgia, "Times New Roman", serif;
   --mono: var(--font-mono), ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
@@ -26,7 +28,7 @@
     --panel: #1a1e33;
     --accent: #8090ff;
     --accent-soft: #1d2250;
-    --signal: #f2c64a;
+    --yellow: #f5cd4a;
     color-scheme: dark;
   }
 }
@@ -147,8 +149,8 @@ main {
   font-size: 0.72rem;
   font-weight: 400;
   padding: 0 0.35rem;
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--yellow);
+  color: var(--on-yellow);
   font-variant-numeric: tabular-nums;
 }
 
@@ -164,7 +166,7 @@ main {
   font-family: var(--mono);
   font-size: 0.72rem;
   padding: 0.1rem 0.5rem;
-  border: 1px solid var(--signal);
+  border: 1px dashed var(--muted);
   color: var(--foreground);
   white-space: nowrap;
   display: inline-flex;
@@ -172,13 +174,13 @@ main {
   gap: 0.4rem;
 }
 
-/* The dot that says "this is a test network". */
+/* The dot that says "this is a test network". Neutral, so the yellow stays the brand's. */
 .network::before {
   content: "";
   width: 0.45rem;
   height: 0.45rem;
   border-radius: 50%;
-  background: var(--signal);
+  background: var(--muted);
 }
 
 /* Phones: the sections move to a bar at the bottom of the screen. */
@@ -281,6 +283,16 @@ h1 {
   font-weight: 700;
   letter-spacing: -0.03em;
   margin: 0 0 0.75rem;
+}
+
+/* The pigment pair under every page title: lapis, then lead-tin yellow. */
+h1::after {
+  content: "";
+  display: block;
+  width: 5rem;
+  height: 4px;
+  margin-top: 0.6rem;
+  background: linear-gradient(to right, var(--accent) 0 70%, transparent 70% 74%, var(--yellow) 74%);
 }
 
 h2 {
@@ -681,6 +693,16 @@ button {
   margin-bottom: 0.25rem;
 }
 
+.acquisition h2::before {
+  content: "";
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.55rem;
+  background: var(--yellow);
+  vertical-align: 0.12em;
+}
+
 .wall {
   --row: 220px;
   display: flex;
@@ -750,6 +772,7 @@ button {
   line-height: 1.35;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   background: linear-gradient(to top, color-mix(in srgb, var(--tone, #333) 70%, #000), transparent);
+  border-bottom: 3px solid var(--yellow);
   opacity: 0;
   transform: translateY(0.5rem);
   transition: opacity 0.3s ease, transform 0.3s ease;
