@@ -11,6 +11,7 @@ import { DEFAULT_IPFS_GATEWAY } from "../gallery";
 import { fetchMetadata, REISSUED_AS, type MetadataFetch } from "../metadata";
 import { getProposals, type ProposalState } from "../proposals";
 import { verifyAction } from "../verify";
+import { getVotes } from "../votes";
 import { analyseImage } from "./image";
 
 const FINAL_STATES: ProposalState[] = ["Defeated", "Canceled", "Executed", "Expired"];
@@ -70,9 +71,12 @@ async function load() {
   const enabledAt = async (root: Hex) =>
     client.readContract({ ...ArtRegistry, functionName: "isGalleryEnabled", args: [root], blockNumber: head.number });
 
+  const votes = await getVotes(client, scan, proposals, capTable?.holders.map((h) => h.address) ?? []);
+
   const verified = await Promise.all(
     proposals.map(async (p) => ({
       ...p,
+      votes: votes.get(p.id)!,
       final: FINAL_STATES.includes(p.state),
       actions: await Promise.all(
         p.actions.map(async (a) => ({
