@@ -149,6 +149,10 @@ export default async function Home() {
           </li>
         </ol>
         <p className="how-more">
+          {/* Opens the intro already playing: this click is the visitor asking for it. */}
+          <Link href="/contracts#intro" className="how-watch">
+            ▶ Watch how a decision moves (20 s)
+          </Link>
           <Link href="/contracts">See the contracts that enforce it →</Link>
         </p>
       </section>
