@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { formatEther } from "viem";
+import { formatEther, isAddressEqual } from "viem";
 import { CapTable } from "@/components/CapTable";
 import { GovernanceNav } from "@/components/GovernanceNav";
 import { HolderChip } from "@/components/holders/HolderChip";
+import { ProposalTimeline } from "@/components/ProposalTimeline";
+import { ProposalVote, type VoteView } from "@/components/ProposalVote";
 import { HoldersDonut } from "@/components/holders/HoldersDonut";
 import { HoldersProvider } from "@/components/holders/HoldersProvider";
 import { holdersData } from "@/components/holders/views";
 import { AddressLink, AsOf, External, Hash, StateLabel, VerdictLabel } from "@/components/ui";
 import { FundGovernor } from "@/generated/contracts";
-import { etherscanAddress, etherscanTx, formatTimestamp, proposalTitle } from "@/lib/format";
+import { etherscanAddress, formatTimestamp, proposalTitle } from "@/lib/format";
 import { getSnapshot, ipfsGateway, type SnapshotProposal } from "@/lib/server/snapshot";
 import { ProposalCheck } from "./ProposalCheck";
 
@@ -18,6 +20,7 @@ export const metadata: Metadata = { title: "Governance" };
 export default async function GovernancePage() {
   const snapshot = await getSnapshot();
   const holders = holdersData(snapshot);
+  const slots = (snapshot.capTable?.holders ?? []).map((h) => ({ address: h.address, slot: h.slot }));
   const body = (
     <>
       {holders && (
@@ -32,7 +35,7 @@ export default async function GovernancePage() {
       )}
       {snapshot.proposals.length === 0 && <p>No proposals yet.</p>}
       {snapshot.proposals.map((p) => (
-        <ProposalCard key={p.id.toString()} proposal={p} now={snapshot.blockTimestamp} />
+        <ProposalCard key={p.id.toString()} proposal={p} now={snapshot.blockTimestamp} slots={slots} />
       ))}
       <CapTable capTable={snapshot.capTable} />
     </>
@@ -58,7 +61,9 @@ export default async function GovernancePage() {
   );
 }
 
-function VotingWindow({ proposal: p, now }: { proposal: SnapshotProposal; now: bigint }) {
+// Only while it matters: before the vote opens, and while it is open (with how to vote). Afterwards the
+// timeline carries the dates.
+function VotingWindow({ proposal: p }: { proposal: SnapshotProposal }) {
   if (p.state === "Pending") return <p>Voting opens {formatTimestamp(p.voteStart)}.</p>;
   if (p.state === "Active")
     return (
@@ -68,14 +73,25 @@ function VotingWindow({ proposal: p, now }: { proposal: SnapshotProposal; now: b
         Governor&apos;s <External href={`${etherscanAddress(FundGovernor.address)}#writeContract`}>castVote</External>.
       </p>
     );
-  return (
-    <p className="muted">
-      Voting {BigInt(p.voteEnd) <= now ? "ran" : "runs"} {formatTimestamp(p.voteStart)} – {formatTimestamp(p.voteEnd)}.
-    </p>
-  );
+  return null;
 }
 
-function ProposalCard({ proposal: p, now }: { proposal: SnapshotProposal; now: bigint }) {
+// The card's vote in plain numbers (ETH) for the client component, with each address's palette slot.
+function voteView(p: SnapshotProposal, slots: { address: string; slot: number }[]): VoteView {
+  const slotOf = (a: string) => slots.find((s) => isAddressEqual(s.address as `0x${string}`, a as `0x${string}`))?.slot ?? null;
+  const n = (x: bigint) => Number(formatEther(x));
+  const v = p.votes;
+  return {
+    state: p.state,
+    supply: v.supply === null ? null : n(v.supply),
+    quorum: v.quorum === null ? null : n(v.quorum),
+    tally: { for: n(v.tally.for), against: n(v.tally.against), abstain: n(v.tally.abstain) },
+    voters: v.voters.map((x) => ({ address: x.address, slot: slotOf(x.address), choice: x.choice, weight: n(x.weight) })),
+    absent: v.absent.map((x) => ({ address: x.address, slot: slotOf(x.address), power: x.power === null ? null : n(x.power) })),
+  };
+}
+
+function ProposalCard({ proposal: p, now, slots }: { proposal: SnapshotProposal; now: bigint; slots: { address: string; slot: number }[] }) {
   return (
     <article className="card" id={p.id.toString()}>
       <header>
@@ -91,30 +107,10 @@ function ProposalCard({ proposal: p, now }: { proposal: SnapshotProposal; now: b
         <dd>
           <HolderChip address={p.proposer} />
         </dd>
-        <dt>Created</dt>
-        <dd>
-          block {p.blockNumber.toString()} · <External href={etherscanTx(p.transactionHash)}>transaction</External>
-        </dd>
-        {p.queued && (
-          <>
-            <dt>Queued</dt>
-            <dd>
-              block {p.queued.blockNumber.toString()} ·{" "}
-              <External href={etherscanTx(p.queued.transactionHash)}>transaction</External>
-            </dd>
-          </>
-        )}
-        {p.executed && (
-          <>
-            <dt>Executed</dt>
-            <dd>
-              block {p.executed.blockNumber.toString()} ·{" "}
-              <External href={etherscanTx(p.executed.transactionHash)}>transaction</External>
-            </dd>
-          </>
-        )}
       </dl>
-      <VotingWindow proposal={p} now={now} />
+      <ProposalVote vote={voteView(p, slots)} />
+      <ProposalTimeline proposal={p} now={now} />
+      <VotingWindow proposal={p} />
 
       <h3>Actions (checked by our server)</h3>
       <ol className="actions">
