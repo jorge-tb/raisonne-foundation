@@ -18,6 +18,10 @@
   --holder-2: #8d5403;
   --holder-3: #30c2d8;
   --holder-4: #791ea3;
+  /* Vote choices: diverging pair + neutral midpoint (validated, both themes). */
+  --vote-for: #2b3fd4;
+  --vote-against: #c8402f;
+  --vote-abstain: #8a8fa6;
   --ui: var(--font-ui), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --title: var(--font-title), Georgia, "Times New Roman", serif;
   --mono: var(--font-mono), ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
@@ -38,6 +42,9 @@
     --holder-2: #8d5403;
     --holder-3: #19a4b7;
     --holder-4: #8831b3;
+    --vote-for: #7383f5;
+    --vote-against: #e8604b;
+    --vote-abstain: #6b7190;
     color-scheme: dark;
   }
 }
@@ -1818,4 +1825,439 @@ dl.params dd {
   margin-left: auto;
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+/* Proposal cards: how each vote went (ProposalVote) and its lifecycle (ProposalTimeline). */
+.vote {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1rem 0;
+}
+
+.vote-headline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+}
+
+.vote-big {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.vote-big small {
+  margin-left: 0.4rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.vote-turnout {
+  font-size: 0.88rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.vote-turnout b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.vote-track {
+  position: relative;
+  height: 14px;
+  margin-top: 1.3rem;
+  border-radius: 7px;
+  background: var(--rule);
+}
+
+.vote-fill {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  gap: 2px;
+  overflow: hidden;
+  border-radius: 7px;
+}
+
+.vote-fill i {
+  flex: none;
+  height: 100%;
+}
+
+.vote-for,
+.swatch-for {
+  background: var(--vote-for);
+}
+
+.vote-against,
+.swatch-against {
+  background: var(--vote-against);
+}
+
+.vote-abstain,
+.swatch-abstain {
+  background: repeating-linear-gradient(135deg, var(--vote-abstain) 0 3px, transparent 3px 6px);
+}
+
+.swatch-none {
+  background: var(--rule);
+}
+
+.vote-quorum {
+  position: absolute;
+  top: -1.35rem;
+  bottom: -0.3rem;
+  width: 0;
+  border-left: 2px dashed var(--foreground);
+  transition: border-color 0.3s ease;
+}
+
+.vote-quorum span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translateX(-50%);
+  padding: 0 0.3rem;
+  font: 500 0.68rem var(--mono);
+  white-space: nowrap;
+  background: var(--surface);
+  transition: color 0.3s ease;
+}
+
+.vote-quorum.reached {
+  border-left-style: solid;
+  border-color: var(--vote-for);
+}
+
+.vote-quorum.reached span {
+  color: var(--vote-for);
+}
+
+.vote-quorum.reached::after {
+  content: "";
+  position: absolute;
+  left: -7px;
+  bottom: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--vote-for);
+  animation: vote-ping 0.7s ease-out both;
+}
+
+@keyframes vote-ping {
+  from {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  to {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.vote-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.1rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.vote-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.vote-legend i {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 2px;
+}
+
+.vote-legend .swatch-abstain {
+  border: 1px solid var(--vote-abstain);
+}
+
+.vote-legend b {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.vote-voters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rule);
+}
+
+.vote-stack {
+  display: flex;
+}
+
+.vote-stack .blockie {
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.vote-stack .blockie + .blockie,
+.vote-more {
+  margin-left: -7px;
+}
+
+.vote-more {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font: 600 0.66rem var(--mono);
+  background: var(--rule);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.vote-count {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.vote-count b {
+  color: var(--foreground);
+}
+
+.vote-toggle {
+  margin-left: auto;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.vote-panel {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.vote-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.vote-filters button {
+  padding: 0.15rem 0.6rem;
+  font-size: 0.8rem;
+  border-color: var(--rule);
+}
+
+.vote-filters button[aria-pressed="true"] {
+  color: var(--background);
+  background: var(--foreground);
+  border-color: var(--foreground);
+}
+
+.vote-rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vote-rows li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.15rem 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.86rem;
+}
+
+.vote-choice {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font: 600 0.66rem var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.vote-choice.for {
+  color: var(--surface);
+  background: var(--vote-for);
+}
+
+.vote-choice.against {
+  color: var(--surface);
+  background: var(--vote-against);
+}
+
+.vote-choice.abstain {
+  color: var(--muted);
+  border: 1px solid var(--vote-abstain);
+}
+
+.vote-choice.none {
+  color: var(--muted);
+  border: 1px dashed var(--rule);
+}
+
+.vote-weight {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.vote-weight small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.vote-note {
+  grid-column: 2 / -1;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.vote-pending {
+  margin: 1rem 0;
+}
+
+.timeline {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0.75rem 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline li {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 0.05rem;
+  min-width: 0;
+  padding-top: 1.1rem;
+  font-size: 0.78rem;
+}
+
+.timeline li::before {
+  content: "";
+  position: absolute;
+  top: 0.3rem;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--rule);
+}
+
+.timeline li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--background);
+  border: 2px solid var(--rule);
+}
+
+.timeline b {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.timeline a {
+  font: 0.7rem var(--mono);
+}
+
+.timeline-done::before,
+.timeline-done::after {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+.timeline-now::after {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.timeline-fail::after {
+  background: var(--foreground) !important;
+  border-color: var(--foreground) !important;
+}
+
+.timeline-skip,
+.timeline-next {
+  color: var(--muted);
+}
+
+.timeline-skip {
+  opacity: 0.55;
+}
+
+@media (max-width: 40rem) {
+  .timeline {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .timeline li {
+    padding: 0 0 0 1.4rem;
+  }
+
+  .timeline li::before {
+    top: 0.9rem;
+    bottom: -0.6rem;
+    left: 0.3rem;
+    right: auto;
+    width: 2px;
+    height: auto;
+  }
+
+  .timeline li:last-child::before {
+    display: none;
+  }
+
+  .timeline li::after {
+    top: 0.25rem;
+  }
+
+  .vote-rows li {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .vote-weight {
+    grid-column: 2 / -1;
+    text-align: left;
+  }
+
+  .vote-weight small {
+    display: inline;
+    margin-left: 0.4rem;
+  }
+
+  .vote-toggle {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vote-quorum,
+  .vote-quorum span {
+    transition: none;
+  }
+
+  .vote-quorum.reached::after {
+    animation: none;
+  }
 }

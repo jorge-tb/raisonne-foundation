@@ -25,6 +25,9 @@ export const STATE_GLYPH: Record<ProposalState, string> = {
 // Rendered on the server in UTC so the output doesn't depend on the viewer's clock.
 const dateFormat = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
 export const formatTimestamp = (seconds: number | bigint) => `${dateFormat.format(new Date(Number(seconds) * 1000))} UTC`;
+// The time of day alone, for steps that follow a dated one: "10:43".
+const timeFormat = new Intl.DateTimeFormat("en-GB", { timeStyle: "short", timeZone: "UTC" });
+export const formatTime = (seconds: number | bigint) => timeFormat.format(new Date(Number(seconds) * 1000));
 
 // bps < 10000, so Number() is exact here.
 // A contract duration in seconds, in the largest whole unit: "5 min", "1 h", "2 days".
