@@ -2119,8 +2119,7 @@ dl.params dd {
   padding-right: 1.6rem;
 }
 
-.chain-links,
-.chain-glow {
+.chain-links {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -2129,8 +2128,18 @@ dl.params dd {
   pointer-events: none;
 }
 
-/* The glowing copy of the outlines sits over the boxes, so the light lies on their borders. */
-.chain-glow {
+/* The travelling light, drawn by the trace: its bloom behind the boxes, the lit outlines and links over
+   them, so the light lies on their borders. Placed and sized by the script. */
+.chain-light {
+  position: absolute;
+  pointer-events: none;
+}
+
+.chain-light-back {
+  z-index: 0;
+}
+
+.chain-light-front {
   z-index: 2;
 }
 
@@ -2250,35 +2259,6 @@ dl.params dd {
   opacity: 0.25;
 }
 
-/* The light warms from the accent glow to the brand yellow along the order. */
-.chain-hue-start {
-  stop-color: var(--glow);
-}
-
-.chain-hue-end {
-  stop-color: var(--yellow);
-}
-
-.chain-bloom {
-  opacity: 0.75;
-}
-
-.chain-haze,
-.chain-lit {
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.chain-haze {
-  stroke-width: 6;
-  opacity: 0.55;
-}
-
-.chain-lit {
-  stroke-width: 1.6;
-}
-
 /* All panels share one cell; the visible one is the active one, the cell is as tall as the tallest. */
 .chain-detail {
   display: grid;
@@ -2302,34 +2282,89 @@ dl.params dd {
   margin: 0;
 }
 
+/* The boxes carry their role on wide screens; on phones it moves into the panel. */
+.chain-panel-role {
+  display: none;
+}
+
+/* An address in two even halves: one line here, two balanced lines on phones. */
+.chain-address {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
 .chain-replay {
   justify-self: start;
   font-size: 0.85rem;
   font-weight: 600;
 }
 
+/* Phones: a two-column snake that fits on one screen. The order runs right along the top, down to the
+   governor, back left to the timelock, then forks down to the registry and across to the treasury. */
 @media (max-width: 52rem) {
   .chain {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.9rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto;
+    grid-template-areas:
+      "holders share"
+      "timelock governor"
+      "registry treasury";
+    align-items: stretch;
+    gap: 2.3rem 3.3rem;
+    padding-right: 0;
   }
 
-  .chain-holders,
-  .chain-FundShare,
-  .chain-FundGovernor,
-  .chain-TimelockController,
-  .chain-FundTreasury,
-  .chain-ArtRegistry {
-    grid-column: 1;
-    grid-row: auto;
+  .chain-holders {
+    grid-area: holders;
+  }
+
+  .chain-FundShare {
+    grid-area: share;
+  }
+
+  .chain-FundGovernor {
+    grid-area: governor;
+  }
+
+  .chain-TimelockController {
+    grid-area: timelock;
   }
 
   .chain-ArtRegistry {
-    order: 5;
+    grid-area: registry;
   }
 
   .chain-FundTreasury {
-    order: 6;
+    grid-area: treasury;
+  }
+
+  .chain-role {
+    display: none;
+  }
+
+  /* Soft focus: the chosen box gets a halo, its neighbours stay whole, the rest dim a little. */
+  .chain[data-focus] .chain-node:not(.on):not(.near) {
+    opacity: 0.55;
+  }
+
+  .chain[data-focus] .chain-link:not(.on) {
+    opacity: 0.45;
+  }
+
+  .chain-node.on,
+  .chain-node[aria-pressed="true"] {
+    box-shadow:
+      0 0 0 3px var(--accent-soft),
+      0 6px 18px -8px var(--glow);
+  }
+
+  .chain-panel-role {
+    display: block;
+  }
+
+  .chain-address {
+    display: grid;
+    font-size: 0.78rem;
   }
 }
 
