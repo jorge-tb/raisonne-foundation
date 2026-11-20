@@ -109,7 +109,21 @@ function smooth(P: Point[], R: number): Line {
   };
 }
 
-// The fund's contracts as a chain of command, in the order a decision travels (numbered). When the diagram comes into view a soft light carries that order through
+// An address in two even halves: one line on wide screens, two balanced lines on phones.
+function Address({ address }: { address: string }) {
+  const half = Math.ceil(address.length / 2);
+  return (
+    <code className="hash chain-address">
+      <span>{address.slice(0, half)}</span>
+      <span>{address.slice(half)}</span>
+    </code>
+  );
+}
+
+// The fund's contracts as a chain of command, in the order a decision travels (numbered). Wide: one
+// row, with the registry under the treasury. Phones: a two-column snake (holders → FundShare along
+// the top, down to the governor, back left to the timelock, which forks down to the registry and
+// across to the treasury). When the diagram comes into view a soft light carries that order through
 // the boxes: the outlines and links are drawn a second time, in light, each behind its own mask, and
 // the light paints the masks as it moves. It only moves forward: a box or link it has left can't be
 // lit again by a later step passing nearby. It ends in the treasury, settling into the box and
@@ -118,6 +132,7 @@ function smooth(P: Point[], R: number): Line {
 export function ContractsDiagram({ contracts, holders }: { contracts: DiagramContract[]; holders: { address: string; slot: number }[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const masksRef = useRef<SVGGElement>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
   const frame = useRef(0);
   // Ids for the gradient, filters and masks; useId's own characters are not safe inside url(#…).
   const uid = `chain${useId().replace(/[^\w-]/g, "")}`;
@@ -134,19 +149,26 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
     const r = root.querySelector(`.chain-node[data-node="${id}"]`)!.getBoundingClientRect();
     return { l: r.left - o.left, t: r.top - o.top, r: r.right - o.left, b: r.bottom - o.top, cx: (r.left + r.right) / 2 - o.left, cy: (r.top + r.bottom) / 2 - o.top };
   }, []);
-  const vertical = useCallback(() => !!ref.current && getComputedStyle(ref.current).gridTemplateColumns.split(" ").length === 1, []);
+  // Phones lay the boxes out in two columns (the snake); wide screens in five.
+  const snake = useCallback(() => !!ref.current && getComputedStyle(ref.current).gridTemplateColumns.split(" ").length === 2, []);
 
   // Where each link runs. Wide: boxes are entered on the left and left on the right; the timelock's two
-  // links fork at a junction in the gap; registry → treasury runs up a rail on the right. Narrow:
-  // entered at the top, left at the bottom; the timelock's link to the treasury forks below it and runs
-  // down a side rail.
+  // links fork at a junction in the gap; registry → treasury runs up a rail on the right. Snake: across
+  // the top, down, back left, down to the registry, and from the timelock under the governor into the
+  // top of the treasury.
   const points = useCallback(
     (from: NodeId, to: NodeId): Point[] => {
       const a = box(from), b = box(to);
-      if (vertical()) {
-        if (from === "TimelockController" && to === "FundTreasury") {
-          const y = (a.b + box("ArtRegistry").t) / 2, x = Math.max(a.r, b.r) + 16;
-          return [[a.cx, a.b], [a.cx, y], [x, y], [x, b.cy], [b.r, b.cy]];
+      if (snake()) {
+        if (from === "holders" || from === "ArtRegistry") return [[a.r, a.cy], [b.l, b.cy]];
+        if (from === "FundGovernor") return [[a.l, a.cy], [b.r, b.cy]];
+        if (from === "TimelockController" && to === "ArtRegistry") {
+          const x = a.l + 0.3 * (a.r - a.l);
+          return [[x, a.b], [x, b.t]];
+        }
+        if (from === "TimelockController") {
+          const x = a.l + 0.74 * (a.r - a.l), y = (a.b + box("ArtRegistry").t) / 2;
+          return [[x, a.b], [x, y], [b.cx, y], [b.cx, b.t]];
         }
         return [[a.cx, a.b], [b.cx, b.t]];
       }
@@ -160,7 +182,7 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
       }
       return [[a.r, a.cy], [b.l, b.cy]];
     },
-    [box, vertical],
+    [box, snake],
   );
 
   const draw = useCallback(() => {
@@ -168,9 +190,9 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
     const all = ids().map((id) => ({ id, ...box(id) }));
     const rightmost = Math.max(...all.map((b) => b.r));
     setBoxes(all);
-    // The colour runs along the order: left → right, or top → bottom on phones.
+    // The colour runs along the order: left → right, or top → bottom in the snake.
     const first = box("holders");
-    setSpan(vertical() ? [[0, first.t], [0, Math.max(...all.map((b) => b.b))]] : [[first.l, 0], [rightmost, 0]]);
+    setSpan(snake() ? [[0, first.t], [0, Math.max(...all.map((b) => b.b))]] : [[first.l, 0], [rightmost, 0]]);
     setWires(
       LINKS.map((l) => {
         const pts = points(l.from, l.to);
@@ -190,7 +212,7 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
         return { key: `${l.from}-${l.to}`, d: route(pts), label, control: l.control };
       }),
     );
-  }, [box, ids, points, vertical]);
+  }, [box, ids, points, snake]);
 
   useLayoutEffect(() => {
     draw();
@@ -380,6 +402,18 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
     };
   }, [trace]);
 
+  // A tap on a phone shows its answer: the panel is brought into view if it isn't.
+  const choose = useCallback(
+    (id: NodeId) => {
+      setSelected(id);
+      if (!snake()) return;
+      requestAnimationFrame(() =>
+        detailRef.current?.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }),
+      );
+    },
+    [snake],
+  );
+
   const near = new Set(LINKS.filter((l) => l.from === focus || l.to === focus).flatMap((l) => [l.from, l.to]));
   const nodeProps = (id: NodeId) => ({
     "data-node": id,
@@ -388,11 +422,12 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
     "aria-pressed": selected === id,
     onPointerEnter: (e: PointerEvent) => e.pointerType === "mouse" && setPreview(id),
     onFocus: () => setSelected(id),
-    onClick: () => setSelected(id),
+    onClick: () => choose(id),
   });
 
   // Every panel is rendered in the same grid cell and only the active one is visible, so the panel is
-  // always as tall as its tallest content: choosing a contract never moves the page.
+  // always as tall as its tallest content: choosing a contract never moves the page. On phones the
+  // boxes show no role, so each panel starts with it.
   const panels: { id: NodeId | null; content: ReactNode }[] = [
     {
       id: null,
@@ -401,9 +436,14 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
     {
       id: "holders",
       content: (
-        <p className="muted">
-          The people who subscribed. They hold FundShare and delegate it to vote; holding and delegating are the only links they start.
-        </p>
+        <>
+          <p className="chain-panel-role">
+            <b>Shareholders</b> · {holders.length} stakeholders
+          </p>
+          <p className="muted">
+            The people who subscribed. They hold FundShare and delegate it to vote; holding and delegating are the only links they start.
+          </p>
+        </>
       ),
     },
     ...contracts.map((c) => ({
@@ -416,7 +456,8 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
               verified source
             </a>
           </p>
-          <code className="hash">{c.address}</code>
+          <Address address={c.address} />
+          <p className="chain-panel-role muted">{c.role}.</p>
           <p className="muted">{c.can}</p>
         </>
       ),
@@ -521,7 +562,7 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
           </button>
         ))}
       </div>
-      <div className="chain-detail" aria-live="polite">
+      <div ref={detailRef} className="chain-detail" aria-live="polite">
         {panels.map((p) => (
           <div key={p.id ?? "none"} className="chain-panel" data-active={p.id === focus || undefined}>
             {p.content}
