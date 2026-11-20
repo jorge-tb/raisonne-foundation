@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { decisionStep, Provenance } from "@/components/Provenance";
-import { AsOf, External, Hash, StateLabel } from "@/components/ui";
+import { AsOf, DetailPending, External, Hash, StateLabel } from "@/components/ui";
 import { ArtRegistry } from "@/generated/contracts";
 import { etherscanTx, etherscanTxLogs, proposalTitle } from "@/lib/format";
 import { getSnapshot, ipfsGateway } from "@/lib/server/snapshot";
@@ -27,8 +28,23 @@ export async function generateMetadata(props: PageProps<"/acquisitions/[root]">)
   return { title: `Acquisition ${root}` };
 }
 
-export default async function AcquisitionPage(props: PageProps<"/acquisitions/[root]">) {
-  const { root } = await props.params;
+// The frame is shared by every acquisition (the App Shell a link prefetches); what depends on the root
+// in the URL streams in inside the boundary.
+export default function AcquisitionPage(props: PageProps<"/acquisitions/[root]">) {
+  return (
+    <>
+      <p className="small">
+        <Link href="/acquisitions">← Acquisitions</Link>
+      </p>
+      <Suspense fallback={<DetailPending />}>
+        <AcquisitionDetails params={props.params} />
+      </Suspense>
+    </>
+  );
+}
+
+async function AcquisitionDetails({ params }: Pick<PageProps<"/acquisitions/[root]">, "params">) {
+  const { root } = await params;
   const { snapshot, gallery } = await findGallery(root);
   if (!gallery) notFound();
 
@@ -37,9 +53,6 @@ export default async function AcquisitionPage(props: PageProps<"/acquisitions/[r
 
   return (
     <>
-      <p className="small">
-        <Link href="/acquisitions">← Acquisitions</Link>
-      </p>
       <h1>{source ? proposalTitle(source.description) : "Acquisition"}</h1>
       <AsOf snapshot={snapshot} />
 

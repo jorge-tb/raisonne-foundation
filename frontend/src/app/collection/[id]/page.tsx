@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { isAddressEqual } from "viem";
 import { decisionStep, Provenance } from "@/components/Provenance";
-import { AddressLink, AsOf, External, Hash } from "@/components/ui";
+import { AddressLink, AsOf, DetailPending, External, Hash } from "@/components/ui";
 import { FundTreasury } from "@/generated/contracts";
 import { etherscanTx, etherscanTxLogs } from "@/lib/format";
 import { REISSUED_AS } from "@/lib/metadata";
@@ -28,8 +29,23 @@ export async function generateMetadata(props: PageProps<"/collection/[id]">): Pr
   return { title: name ? `#${id} ${name}` : `Artwork #${id}` };
 }
 
-export default async function ArtworkPage(props: PageProps<"/collection/[id]">) {
-  const { id } = await props.params;
+// The frame is shared by every artwork (the App Shell a link prefetches); what depends on the id in the
+// URL streams in inside the boundary.
+export default function ArtworkPage(props: PageProps<"/collection/[id]">) {
+  return (
+    <>
+      <p className="small">
+        <Link href="/collection">← Collection</Link>
+      </p>
+      <Suspense fallback={<DetailPending />}>
+        <ArtworkDetails params={props.params} />
+      </Suspense>
+    </>
+  );
+}
+
+async function ArtworkDetails({ params }: Pick<PageProps<"/collection/[id]">, "params">) {
+  const { id } = await params;
   const { snapshot, token } = await findToken(id);
   if (!token) notFound();
 
@@ -43,9 +59,6 @@ export default async function ArtworkPage(props: PageProps<"/collection/[id]">) 
 
   return (
     <>
-      <p className="small">
-        <Link href="/collection">← Collection</Link>
-      </p>
       <h1>
         #{id} {artwork?.name ?? <span className="muted">title unavailable</span>}
       </h1>

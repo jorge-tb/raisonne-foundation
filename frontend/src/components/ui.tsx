@@ -33,6 +33,11 @@ export function StateLabel({ state }: { state: ProposalState }) {
   );
 }
 
+// Holds the title's place while a detail page's URL-specific content streams in, so nothing jumps.
+export function DetailPending() {
+  return <div className="detail-pending" role="status" aria-label="Loading" />;
+}
+
 export function AsOf({ snapshot }: { snapshot: Snapshot }) {
   return (
     <p className="muted small">
