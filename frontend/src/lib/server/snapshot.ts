@@ -125,10 +125,13 @@ async function load() {
 
 // One cached chain read shared by every page. Regenerated in the background at most once a
 // minute, whatever the traffic; a stale copy may be served for up to a day if the RPC is down.
+// `stale` (how long a browser reuses it while moving inside the site) is 5 minutes: Next keeps entries
+// below that out of the shared App Shell, so link prefetches would carry no content and every
+// navigation would wait for the server. A reload still gets data refreshed within the minute.
 // (Return values use React client serialization, which carries bigint.)
 export async function getSnapshot() {
   "use cache";
-  cacheLife({ stale: 60, revalidate: 60, expire: 86400 });
+  cacheLife({ stale: 300, revalidate: 60, expire: 86400 });
   try {
     return await load();
   } catch (error) {

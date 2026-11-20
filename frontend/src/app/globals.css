@@ -325,6 +325,15 @@ h1 {
   margin: 0 0 0.75rem;
 }
 
+/* A title-sized block while a detail page streams in (DetailPending); no motion. */
+.detail-pending {
+  height: calc(clamp(1.9rem, 4.5vw, 2.75rem) * 1.08 + 0.6rem + 4px);
+  max-width: 24rem;
+  margin: 0 0 0.75rem;
+  border-radius: 6px;
+  background: var(--panel);
+}
+
 /* The pigment pair under every page title: lapis, then lead-tin yellow. */
 h1::after {
   content: "";
