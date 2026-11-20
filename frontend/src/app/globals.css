@@ -22,6 +22,8 @@
   --vote-for: #2b3fd4;
   --vote-against: #c8402f;
   --vote-abstain: #8a8fa6;
+  /* The chain of command's travelling light. */
+  --glow: #5b6cff;
   --ui: var(--font-ui), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --title: var(--font-title), Georgia, "Times New Roman", serif;
   --mono: var(--font-mono), ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
@@ -45,6 +47,7 @@
     --vote-for: #7383f5;
     --vote-against: #e8604b;
     --vote-abstain: #6b7190;
+    --glow: #9aa6ff;
     color-scheme: dark;
   }
 }
@@ -2088,7 +2091,7 @@ dl.params dd {
 }
 
 /* Contracts page: the chain of command (ContractsDiagram). Boxes on a grid, right-angle links with
-   rounded corners measured from the boxes. */
+   rounded corners measured from the boxes, and a light that traces the order once. */
 .chain-wrap {
   display: grid;
   gap: 1rem;
@@ -2107,13 +2110,19 @@ dl.params dd {
   padding-right: 1.6rem;
 }
 
-.chain-links {
+.chain-links,
+.chain-glow {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   overflow: visible;
   pointer-events: none;
+}
+
+/* The glowing copy of the outlines sits over the boxes, so the light lies on their borders. */
+.chain-glow {
+  z-index: 2;
 }
 
 .chain-node {
@@ -2232,6 +2241,35 @@ dl.params dd {
   opacity: 0.25;
 }
 
+/* The light warms from the accent glow to the brand yellow along the order. */
+.chain-hue-start {
+  stop-color: var(--glow);
+}
+
+.chain-hue-end {
+  stop-color: var(--yellow);
+}
+
+.chain-bloom {
+  opacity: 0.75;
+}
+
+.chain-haze,
+.chain-lit {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chain-haze {
+  stroke-width: 6;
+  opacity: 0.55;
+}
+
+.chain-lit {
+  stroke-width: 1.6;
+}
+
 /* All panels share one cell; the visible one is the active one, the cell is as tall as the tallest. */
 .chain-detail {
   display: grid;
@@ -2253,6 +2291,12 @@ dl.params dd {
 
 .chain-panel p {
   margin: 0;
+}
+
+.chain-replay {
+  justify-self: start;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 @media (max-width: 52rem) {
@@ -2284,5 +2328,9 @@ dl.params dd {
   .chain-node,
   .chain-link path {
     transition: none;
+  }
+
+  .chain-replay {
+    display: none;
   }
 }
