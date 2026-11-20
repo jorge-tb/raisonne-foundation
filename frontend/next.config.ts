@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    // Security advisories for the installed Next.js stop `next` commands with an upgrade notice.
+    agentUpgrade: "security",
+  },
   // Sections were renamed for visitors (Galleries → Acquisitions, Proposals → Governance, Artworks →
   // Collection); old links keep working. The URL fragment (#proposal-id) survives the redirect.
   async redirects() {
