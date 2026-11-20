@@ -1303,185 +1303,6 @@ button {
   flex: none;
 }
 
-.cmd-wrap {
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  padding: clamp(1rem, 3vw, 1.5rem);
-}
-
-.cmd {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 3.2rem 4.25rem;
-  align-items: center;
-}
-
-.cmd-wires {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.cmd-node {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 0.3rem;
-  min-width: 0;
-  padding: 0.75rem 0.8rem;
-  text-align: left;
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  transition: border-color 0.2s ease, opacity 0.25s ease;
-}
-
-.cmd-node.on,
-.cmd-node[aria-pressed="true"] {
-  border-color: var(--accent);
-}
-
-.cmd[data-focus] .cmd-node:not(.on):not(.near) {
-  opacity: 0.35;
-}
-
-.cmd-node b {
-  font-size: 0.95rem;
-  letter-spacing: -0.01em;
-}
-
-.cmd-icon {
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-  color: var(--accent);
-}
-
-.cmd-role {
-  color: var(--muted);
-  font-size: 0.8rem;
-  line-height: 1.35;
-}
-
-.cmd-holders {
-  grid-column: 1;
-  grid-row: 1;
-  border-style: dashed;
-}
-
-.cmd-FundShare {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.cmd-FundGovernor {
-  grid-column: 3;
-  grid-row: 1;
-}
-
-.cmd-TimelockController {
-  grid-column: 4;
-  grid-row: 1;
-}
-
-.cmd-FundTreasury {
-  grid-column: 5;
-  grid-row: 1;
-}
-
-.cmd-ArtRegistry {
-  grid-column: 4 / span 2;
-  grid-row: 2;
-  justify-self: center;
-  width: min(100%, 15rem);
-}
-
-.cmd-wire path {
-  fill: none;
-  stroke: var(--rule);
-  stroke-width: 2;
-  transition: stroke 0.25s ease, opacity 0.25s ease;
-}
-
-.cmd-wire.control path {
-  stroke: var(--muted);
-}
-
-.cmd-wire text {
-  font: 500 10.5px var(--mono);
-  fill: var(--muted);
-  paint-order: stroke;
-  stroke: var(--surface);
-  stroke-width: 4px;
-}
-
-.cmd-wire.on path {
-  stroke: var(--accent);
-}
-
-.cmd-wire.on text {
-  fill: var(--accent);
-}
-
-.cmd[data-focus] .cmd-wire:not(.on) {
-  opacity: 0.25;
-}
-
-/* All panels share one cell; the visible one is the active one, the cell is as tall as the tallest. */
-.cmd-detail {
-  display: grid;
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--rule);
-}
-
-.cmd-panel {
-  grid-area: 1 / 1;
-  display: grid;
-  align-content: start;
-  gap: 0.3rem;
-  min-width: 0;
-}
-
-.cmd-panel:not([data-active]) {
-  visibility: hidden;
-}
-
-.cmd-panel p {
-  margin: 0;
-}
-
-@media (max-width: 52rem) {
-  .cmd {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 2.2rem;
-    padding-right: 1.4rem;
-  }
-
-  .cmd-holders,
-  .cmd-FundShare,
-  .cmd-FundGovernor,
-  .cmd-TimelockController,
-  .cmd-FundTreasury,
-  .cmd-ArtRegistry {
-    grid-column: 1;
-    grid-row: auto;
-    justify-self: stretch;
-    width: auto;
-  }
-
-  .cmd-ArtRegistry {
-    order: 5;
-  }
-
-  .cmd-FundTreasury {
-    order: 6;
-  }
-}
-
 .guarantees {
   display: grid;
   gap: 0.6rem;
@@ -1572,13 +1393,6 @@ dl.params dd {
   margin: 0;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cmd-node,
-  .cmd-wire path {
-    transition: none;
-  }
 }
 
 /* Home: how the fund decides, in four steps; the proofs are on the Contracts page. */
@@ -2270,5 +2084,205 @@ dl.params dd {
 
   .vote-quorum.reached::after {
     animation: none;
+  }
+}
+
+/* Contracts page: the chain of command (ContractsDiagram). Boxes on a grid, right-angle links with
+   rounded corners measured from the boxes. */
+.chain-wrap {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+.chain {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 2.6rem 3rem;
+  padding-right: 1.6rem;
+}
+
+.chain-links {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.chain-node {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.7rem 0.8rem 0.75rem;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  transition: border-color 0.25s ease, opacity 0.25s ease;
+}
+
+.chain-node.on,
+.chain-node[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+
+.chain[data-focus] .chain-node:not(.on):not(.near) {
+  opacity: 0.4;
+}
+
+.chain-holders {
+  grid-column: 1;
+  grid-row: 1;
+  border-style: dashed;
+}
+
+.chain-FundShare {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.chain-FundGovernor {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.chain-TimelockController {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.chain-FundTreasury {
+  grid-column: 5;
+  grid-row: 1;
+}
+
+.chain-ArtRegistry {
+  grid-column: 5;
+  grid-row: 2;
+}
+
+.chain-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--accent);
+}
+
+.chain-avatars {
+  display: flex;
+  gap: 2px;
+}
+
+.chain-step {
+  font: 500 0.66rem var(--mono);
+  color: var(--muted);
+}
+
+.chain-node b {
+  font-size: 0.92rem;
+  letter-spacing: -0.01em;
+}
+
+.chain-role {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.chain-link path {
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.25s ease, opacity 0.25s ease;
+}
+
+.chain-link.control path {
+  stroke: color-mix(in srgb, var(--muted) 70%, var(--rule));
+}
+
+.chain-link text {
+  font: 500 10.5px var(--mono);
+  fill: var(--muted);
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+}
+
+.chain-link.on path {
+  stroke: var(--accent);
+}
+
+.chain-link.on text {
+  fill: var(--accent);
+}
+
+.chain[data-focus] .chain-link:not(.on) {
+  opacity: 0.25;
+}
+
+/* All panels share one cell; the visible one is the active one, the cell is as tall as the tallest. */
+.chain-detail {
+  display: grid;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--rule);
+}
+
+.chain-panel {
+  grid-area: 1 / 1;
+  display: grid;
+  align-content: start;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.chain-panel:not([data-active]) {
+  visibility: hidden;
+}
+
+.chain-panel p {
+  margin: 0;
+}
+
+@media (max-width: 52rem) {
+  .chain {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.9rem;
+  }
+
+  .chain-holders,
+  .chain-FundShare,
+  .chain-FundGovernor,
+  .chain-TimelockController,
+  .chain-FundTreasury,
+  .chain-ArtRegistry {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .chain-ArtRegistry {
+    order: 5;
+  }
+
+  .chain-FundTreasury {
+    order: 6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chain-node,
+  .chain-link path {
+    transition: none;
   }
 }
