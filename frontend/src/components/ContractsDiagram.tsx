@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { etherscanCode } from "@/lib/format";
 import { ContractGlyph, type ContractKind } from "./ContractGlyph";
 import { Blockie } from "./holders/Blockie";
@@ -20,13 +20,15 @@ const WIRES: { from: NodeId; to: NodeId; label: string; control?: boolean }[] = 
 
 type Box = { l: number; t: number; r: number; b: number; cx: number; cy: number };
 
-// The fund's contracts as a chain of command. Hover, focus or tap a contract to follow its arrows;
-// the panel below gives its address, verified source and what it can do.
+// The fund's contracts as a chain of command. Hover (mouse) previews a contract's arrows; a click,
+// tap or keyboard focus selects it and keeps it selected. The panel below gives its address, verified
+// source and what it can do.
 export function ContractsDiagram({ contracts, holders }: { contracts: DiagramContract[]; holders: { address: string; slot: number }[] }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [focus, setFocus] = useState<NodeId | null>(null);
+  const [selected, setSelected] = useState<NodeId | null>(null);
+  const [preview, setPreview] = useState<NodeId | null>(null);
+  const focus = preview ?? selected;
   const [wires, setWires] = useState<{ d: string; lx: number; ly: number; anchor: "start" | "middle" | "end"; w: (typeof WIRES)[number] }[]>([]);
-  const byKind = Object.fromEntries(contracts.map((c) => [c.kind, c])) as Record<ContractKind, DiagramContract>;
 
   // Arrows are drawn between the nodes' real positions, so the grid's layout (a row on wide screens,
   // a column on phones) decides the geometry.
@@ -68,16 +70,54 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
   const nodeProps = (id: NodeId) => ({
     "data-node": id,
     className: `cmd-node cmd-${id}${focus === id ? " on" : ""}${near.has(id) ? " near" : ""}`,
-    onPointerEnter: () => setFocus(id),
-    onFocus: () => setFocus(id),
-    onClick: () => setFocus(id),
+    "aria-pressed": selected === id,
+    onPointerEnter: (e: PointerEvent) => e.pointerType === "mouse" && setPreview(id),
+    onFocus: () => setSelected(id),
+    onClick: () => setSelected(id),
     type: "button" as const,
   });
-  const selected = focus && focus !== "holders" ? byKind[focus] : null;
+
+  // Every panel is rendered in the same grid cell and only the active one is visible, so the panel is
+  // always as tall as its tallest content: choosing a contract never moves the page.
+  const panels: { id: NodeId | null; content: ReactNode }[] = [
+    {
+      id: null,
+      content: (
+        <p className="muted">
+          Hover or tap a contract to follow its arrows. Arrows in ink are control (ownership and roles); light ones are
+          flows.
+        </p>
+      ),
+    },
+    {
+      id: "holders",
+      content: (
+        <p className="muted">
+          The people who subscribed. They hold FundShare and delegate it to vote; holding and delegating are the only
+          arrows they start.
+        </p>
+      ),
+    },
+    ...contracts.map((c) => ({
+      id: c.kind as NodeId,
+      content: (
+        <>
+          <p>
+            <b>{c.kind}</b> ·{" "}
+            <a href={etherscanCode(c.address)} target="_blank" rel="noreferrer">
+              verified source
+            </a>
+          </p>
+          <code className="hash">{c.address}</code>
+          <p className="muted">{c.can}</p>
+        </>
+      ),
+    })),
+  ];
 
   return (
     <div className="cmd-wrap">
-      <div ref={ref} className="cmd" data-focus={focus ?? undefined} onPointerLeave={() => setFocus(null)}>
+      <div ref={ref} className="cmd" data-focus={focus ?? undefined} onPointerLeave={(e) => e.pointerType === "mouse" && setPreview(null)}>
         <svg className="cmd-wires" aria-hidden="true">
           <defs>
             <marker id="cmd-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -117,28 +157,11 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
         ))}
       </div>
       <div className="cmd-detail" aria-live="polite">
-        {selected ? (
-          <>
-            <p>
-              <b>{selected.kind}</b> ·{" "}
-              <a href={etherscanCode(selected.address)} target="_blank" rel="noreferrer">
-                verified source
-              </a>
-            </p>
-            <code className="hash">{selected.address}</code>
-            <p className="muted">{selected.can}</p>
-          </>
-        ) : focus === "holders" ? (
-          <p className="muted">
-            The people who subscribed. They hold FundShare and delegate it to vote; holding and delegating are the only
-            arrows they start.
-          </p>
-        ) : (
-          <p className="muted">
-            Hover or tap a contract to follow its arrows. Arrows in ink are control (ownership and roles); light ones are
-            flows.
-          </p>
-        )}
+        {panels.map((p) => (
+          <div key={p.id ?? "none"} className="cmd-panel" data-active={p.id === focus || undefined}>
+            {p.content}
+          </div>
+        ))}
       </div>
     </div>
   );

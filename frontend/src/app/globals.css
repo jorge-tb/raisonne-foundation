@@ -1339,8 +1339,8 @@ button {
   transition: border-color 0.2s ease, opacity 0.25s ease;
 }
 
-.cmd-node:hover,
-.cmd-node.on {
+.cmd-node.on,
+.cmd-node[aria-pressed="true"] {
   border-color: var(--accent);
 }
 
@@ -1430,16 +1430,27 @@ button {
   opacity: 0.25;
 }
 
+/* All panels share one cell; the visible one is the active one, the cell is as tall as the tallest. */
 .cmd-detail {
   display: grid;
-  gap: 0.3rem;
-  min-height: 5.5rem;
   margin-top: 1.25rem;
   padding-top: 1rem;
   border-top: 1px solid var(--rule);
 }
 
-.cmd-detail p {
+.cmd-panel {
+  grid-area: 1 / 1;
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.cmd-panel:not([data-active]) {
+  visibility: hidden;
+}
+
+.cmd-panel p {
   margin: 0;
 }
 
