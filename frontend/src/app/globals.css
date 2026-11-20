@@ -2119,8 +2119,7 @@ dl.params dd {
   padding-right: 1.6rem;
 }
 
-.chain-links,
-.chain-glow {
+.chain-links {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -2129,8 +2128,18 @@ dl.params dd {
   pointer-events: none;
 }
 
-/* The glowing copy of the outlines sits over the boxes, so the light lies on their borders. */
-.chain-glow {
+/* The travelling light, drawn by the trace: its bloom behind the boxes, the lit outlines and links over
+   them, so the light lies on their borders. Placed and sized by the script. */
+.chain-light {
+  position: absolute;
+  pointer-events: none;
+}
+
+.chain-light-back {
+  z-index: 0;
+}
+
+.chain-light-front {
   z-index: 2;
 }
 
@@ -2248,35 +2257,6 @@ dl.params dd {
 
 .chain[data-focus] .chain-link:not(.on) {
   opacity: 0.25;
-}
-
-/* The light warms from the accent glow to the brand yellow along the order. */
-.chain-hue-start {
-  stop-color: var(--glow);
-}
-
-.chain-hue-end {
-  stop-color: var(--yellow);
-}
-
-.chain-bloom {
-  opacity: 0.75;
-}
-
-.chain-haze,
-.chain-lit {
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.chain-haze {
-  stroke-width: 6;
-  opacity: 0.55;
-}
-
-.chain-lit {
-  stroke-width: 1.6;
 }
 
 /* All panels share one cell; the visible one is the active one, the cell is as tall as the tallest. */

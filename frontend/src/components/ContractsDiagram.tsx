@@ -23,6 +23,7 @@ const LINKS: { from: NodeId; to: NodeId; label: string; control?: boolean }[] = 
 
 type Box = { l: number; t: number; r: number; b: number; cx: number; cy: number };
 type Point = [number, number];
+type Rect = [number, number, number, number]; // left, top, right, bottom
 type Wire = { d: string; label: { x: number; y: number; anchor: "start" | "middle"; rotate: boolean; lines: string[] }; control?: boolean; key: string };
 // One stretch of the trace: through a box, along a link, or (rest) the light standing still while it
 // fades. `el` is the box or link it belongs to; `branch` 0 is the shared path, 1 the timelock's branch
@@ -30,8 +31,8 @@ type Wire = { d: string; label: { x: number; y: number; anchor: "start" | "middl
 // `size` the shape it has, after inertia.
 type Leg = { el: string; branch: 0 | 1 | 2; t0: number; t1: number; at: (u: number) => Point; raw: (u: number) => Point; size: (u: number) => Point; rest?: boolean };
 type Line = { total: number; at: (s: number) => { p: Point; d: Point } };
+type Spot = { x: number; y: number; rx: number; ry: number; opacity: number; t0: number };
 
-const SVG_NS = "http://www.w3.org/2000/svg";
 const CORNER = 10; // rounding of the connectors' corners and of the boxes' outline
 const SPEED = 0.18; // px per ms: calm enough to follow
 // The wake: where the light was, every SPACING px back over TAIL px, each copy smaller and dimmer.
@@ -45,9 +46,17 @@ const EDGE = 0.65;
 // The light takes a link's corners on a wider curve than the drawn line.
 const LINK_CURVE = 24;
 // The light's shape eases toward the one its direction asks for with this time constant (ms), so a
-// turn reshapes it gradually; worked out ahead every STEP ms.
+// turn reshapes it gradually; worked out ahead every STEP_MS ms.
 const TAU = 200;
 const STEP_MS = 4;
+// The glow drawn where the light is: a soft haze and a fine bright line on each outline and link, and a
+// coloured bloom behind each box. Room around each element for the blur, and around the diagram for
+// the rail and the bloom.
+const HAZE_BLUR = 2.5;
+const BLOOM_BLUR = 14;
+const BOX_ROOM = 3 * BLOOM_BLUR;
+const LINK_ROOM = 8;
+const PAD = 60;
 
 // A right-angle path through the points, with rounded corners.
 function route(pts: Point[]): string {
@@ -124,24 +133,24 @@ function Address({ address }: { address: string }) {
 // row, with the registry under the treasury. Phones: a two-column snake (holders → FundShare along
 // the top, down to the governor, back left to the timelock, which forks down to the registry and
 // across to the treasury). When the diagram comes into view a soft light carries that order through
-// the boxes: the outlines and links are drawn a second time, in light, each behind its own mask, and
-// the light paints the masks as it moves. It only moves forward: a box or link it has left can't be
-// lit again by a later step passing nearby. It ends in the treasury, settling into the box and
-// dissolving there. Its colour warms from the accent blue to yellow along the order. Hover (mouse)
-// previews a box's own links; a click or tap selects it and keeps it selected.
+// the boxes, lighting each outline and link it reaches, with a coloured bloom behind each box. It
+// only moves forward: a box or link it has left can't be lit again by a later step passing nearby. It
+// ends in the treasury, settling into the box and dissolving there. Its colour warms from the accent
+// blue to yellow along the order. Hover (mouse) previews a box's own links; a click or tap selects it
+// and keeps it selected.
 export function ContractsDiagram({ contracts, holders }: { contracts: DiagramContract[]; holders: { address: string; slot: number }[] }) {
   const ref = useRef<HTMLDivElement>(null);
-  const masksRef = useRef<SVGGElement>(null);
+  const backRef = useRef<HTMLCanvasElement>(null);
+  const frontRef = useRef<HTMLCanvasElement>(null);
   const detailRef = useRef<HTMLDivElement>(null);
   const frame = useRef(0);
-  // Ids for the gradient, filters and masks; useId's own characters are not safe inside url(#…).
-  const uid = `chain${useId().replace(/[^\w-]/g, "")}`;
+  const run = useRef(0);
   const [selected, setSelected] = useState<NodeId | null>(null);
   const [preview, setPreview] = useState<NodeId | null>(null);
   const [wires, setWires] = useState<Wire[]>([]);
-  const [boxes, setBoxes] = useState<(Box & { id: NodeId })[]>([]);
-  const [span, setSpan] = useState<[Point, Point]>([[0, 0], [1, 0]]);
   const focus = preview ?? selected;
+  // Ids for the sprites' own gradient and filters; useId's characters are not safe inside url(#…).
+  const uid = `chain${useId().replace(/[^\w-]/g, "")}`;
   const ids = useCallback(() => ["holders", ...contracts.map((c) => c.kind)] as NodeId[], [contracts]);
 
   const box = useCallback((id: NodeId): Box => {
@@ -187,12 +196,7 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
 
   const draw = useCallback(() => {
     if (!ref.current) return;
-    const all = ids().map((id) => ({ id, ...box(id) }));
-    const rightmost = Math.max(...all.map((b) => b.r));
-    setBoxes(all);
-    // The colour runs along the order: left → right, or top → bottom in the snake.
-    const first = box("holders");
-    setSpan(snake() ? [[0, first.t], [0, Math.max(...all.map((b) => b.b))]] : [[first.l, 0], [rightmost, 0]]);
+    const rightmost = Math.max(...ids().map((id) => box(id).r));
     setWires(
       LINKS.map((l) => {
         const pts = points(l.from, l.to);
@@ -212,7 +216,7 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
         return { key: `${l.from}-${l.to}`, d: route(pts), label, control: l.control };
       }),
     );
-  }, [box, ids, points, snake]);
+  }, [box, ids, points]);
 
   useLayoutEffect(() => {
     draw();
@@ -222,13 +226,15 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
     return () => ro.disconnect();
   }, [draw]);
 
-  // The trace. Imperative on purpose: a frame loop that must not re-render the page.
+  // The trace. Imperative on purpose: a frame loop that must not re-render the page. It draws on two
+  // canvases (the bloom behind the boxes, the lit outlines and links in front), so a frame changes no
+  // SVG and no styles: each element's glow is prepared once as a picture, and every frame stamps the
+  // lit part of it through that element's own light.
   const trace = useCallback(() => {
-    const root = ref.current, masksG = masksRef.current;
-    if (!root || !masksG || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const root = ref.current, back = backRef.current, front = frontRef.current;
+    if (!root || !back || !front || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     cancelAnimationFrame(frame.current);
-    masksG.replaceChildren();
-    for (const el of root.querySelectorAll("[data-el]")) el.setAttribute("mask", `url(#${uid}-none)`);
+    const thisRun = ++run.current;
 
     const B = Object.fromEntries(ids().map((id) => [id, box(id)])) as Record<NodeId, Box>;
     // The light is an oval: DEPTH along its travel, across it the box's full width or height (so it
@@ -315,49 +321,92 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
       leg.size = (u) => tl(leg.t0 + u * (leg.t1 - leg.t0));
     }
 
-    // The light only moves forward. An element accepts light from a leg only if that leg starts no later
-    // than the element's own last moment in the trace: it glows as the light approaches and while the
-    // light is on it, and its wake fades, but a later step passing nearby can't light it again.
-    // Elements with the same last moment share one mask.
+    // The canvases cover the diagram and a margin for the rail and the bloom. The outlines are drawn at
+    // the screen's pixel density; the bloom and every element's light are soft, so they are drawn at one
+    // pixel per CSS pixel and scaled up, which is invisible and many times less work on dense screens.
+    const dpr = Math.min(window.devicePixelRatio || 1, 3), W = root.clientWidth, H = root.clientHeight;
+    for (const [c, density] of [[back, 1], [front, dpr]] as const) {
+      Object.assign(c.style, { left: `${-PAD}px`, top: `${-PAD}px`, width: `${W + 2 * PAD}px`, height: `${H + 2 * PAD}px` });
+      c.width = Math.round((W + 2 * PAD) * density);
+      c.height = Math.round((H + 2 * PAD) * density);
+    }
+    const bctx = back.getContext("2d")!, fctx = front.getContext("2d")!;
+
+    // Each element's glow as a picture, in the theme's colours and the outlines' gradient (blue to
+    // yellow along the order), blurred once here instead of on every frame.
+    const cs = getComputedStyle(root), c0 = cs.getPropertyValue("--glow").trim(), c1 = cs.getPropertyValue("--yellow").trim();
+    const all = Object.values(B), first = B.holders;
+    const [g0, g1]: [Point, Point] = snake() ? [[0, first.t], [0, Math.max(...all.map((b) => b.b))]] : [[first.l, 0], [Math.max(...all.map((b) => b.r)), 0]];
+    const picture = ([l, t, r, b]: Rect, body: string, density: number) => {
+      const w = r - l, h = b - t, img = new Image();
+      img.src =
+        "data:image/svg+xml," +
+        encodeURIComponent(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="${w * density}" height="${h * density}" viewBox="${l} ${t} ${w} ${h}"><defs>` +
+            `<linearGradient id="${uid}g" gradientUnits="userSpaceOnUse" x1="${g0[0]}" y1="${g0[1]}" x2="${g1[0]}" y2="${g1[1]}"><stop offset="0.6" stop-color="${c0}"/><stop offset="0.8" stop-color="${c1}"/></linearGradient>` +
+            `<filter id="${uid}h" filterUnits="userSpaceOnUse" x="${l}" y="${t}" width="${w}" height="${h}"><feGaussianBlur stdDeviation="${HAZE_BLUR}"/></filter>` +
+            `<filter id="${uid}b" filterUnits="userSpaceOnUse" x="${l}" y="${t}" width="${w}" height="${h}"><feGaussianBlur stdDeviation="${BLOOM_BLUR}"/></filter>` +
+            `</defs>${body}</svg>`,
+        );
+      return img;
+    };
+    const outline = (shape: string) =>
+      `<g fill="none" stroke="url(#${uid}g)" stroke-linecap="round" stroke-linejoin="round">` +
+      `<g opacity="0.55" filter="url(#${uid}h)" stroke-width="6">${shape}</g><g stroke-width="1.6">${shape}</g></g>`;
     const lastOf: Record<string, number> = {};
     for (const leg of legs) lastOf[leg.el] = Math.max(lastOf[leg.el] ?? 0, leg.t1);
-    const masks = [...new Set(Object.values(lastOf))]
-      .sort((a, b) => a - b)
-      .map((until, i) => {
-        const m = document.createElementNS(SVG_NS, "mask");
-        m.setAttribute("id", `${uid}-m${i}`);
-        m.setAttribute("maskUnits", "userSpaceOnUse");
-        for (const [k, v] of [["x", "-500"], ["y", "-500"], ["width", "5000"], ["height", "5000"]]) m.setAttribute(k, v);
-        masksG.appendChild(m);
-        return { until, m, spots: [] as SVGEllipseElement[], used: 0 };
-      });
-    for (const el of root.querySelectorAll<SVGGElement>("[data-el]")) {
-      const i = masks.findIndex((x) => x.until === lastOf[el.dataset.el!]);
-      if (i >= 0) el.setAttribute("mask", `url(#${uid}-m${i})`);
-    }
-    const place = (mk: (typeof masks)[number], x: number, y: number, rx: number, ry: number, opacity: number) => {
-      let e = mk.spots[mk.used];
-      if (!e) {
-        e = document.createElementNS(SVG_NS, "ellipse");
-        e.setAttribute("fill", `url(#${uid}-spot)`);
-        mk.m.appendChild(e);
-        mk.spots.push(e);
-      }
-      mk.used++;
-      e.setAttribute("cx", String(x));
-      e.setAttribute("cy", String(y));
-      e.setAttribute("rx", String(rx));
-      e.setAttribute("ry", String(ry));
-      e.setAttribute("opacity", String(opacity));
-      e.style.display = "";
+    const elements = [
+      ...ids().map((id) => {
+        // Two areas: a wide one for the soft bloom and the light, a tight one for the sharp outline.
+        const r = B[id], area: Rect = [r.l - BOX_ROOM, r.t - BOX_ROOM, r.r + BOX_ROOM, r.b + BOX_ROOM], tight: Rect = [r.l - LINK_ROOM, r.t - LINK_ROOM, r.r + LINK_ROOM, r.b + LINK_ROOM];
+        const rect = `<rect x="${r.l + 0.5}" y="${r.t + 0.5}" width="${r.r - r.l - 1}" height="${r.b - r.t - 1}" rx="${CORNER - 0.5}"/>`;
+        const bloom = `<rect x="${r.l - 2}" y="${r.t - 2}" width="${r.r - r.l + 4}" height="${r.b - r.t + 4}" rx="${CORNER + 2}" fill="url(#${uid}g)" opacity="0.75" filter="url(#${uid}b)"/>`;
+        return { key: `box:${id}`, area, tight, front: picture(tight, outline(rect), dpr), back: picture(area, bloom, 1) as HTMLImageElement | null };
+      }),
+      ...LINKS.map((l) => {
+        const P = points(l.from, l.to);
+        const area: Rect = [Math.min(...P.map((p) => p[0])) - LINK_ROOM, Math.min(...P.map((p) => p[1])) - LINK_ROOM, Math.max(...P.map((p) => p[0])) + LINK_ROOM, Math.max(...P.map((p) => p[1])) + LINK_ROOM];
+        return { key: `link:${l.from}-${l.to}`, area, tight: area, front: picture(area, outline(`<path d="${route(P)}"/>`), dpr), back: null as HTMLImageElement | null };
+      }),
+    ].map((e) => {
+      // Per element, reused every frame: its light (1x), and scratch canvases to stamp its pictures
+      // through it, one at screen density for the outline, one at 1x for the bloom.
+      const [l, t, r, b] = e.area, w1 = Math.ceil(r - l), h1 = Math.ceil(b - t), w = Math.ceil((e.tight[2] - e.tight[0]) * dpr), h = Math.ceil((e.tight[3] - e.tight[1]) * dpr);
+      const canvas = (cw: number, ch: number) => Object.assign(document.createElement("canvas"), { width: cw, height: ch });
+      const mask = canvas(w1, h1), tmp = canvas(w, h), tmpBack = canvas(w1, h1);
+      const mctx = mask.getContext("2d")!, spot = mctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+      spot.addColorStop(0, "#fff");
+      spot.addColorStop(0.5, "rgba(255,255,255,0.8)");
+      spot.addColorStop(1, "rgba(255,255,255,0)");
+      return { ...e, until: lastOf[e.key] ?? -1, w, h, w1, h1, mask, mctx, spot, tmp, tctx: tmp.getContext("2d")!, tmpBack, bctx2: tmpBack.getContext("2d")! };
+    });
+    const touches = (s: Spot, [l, t, r, b]: Rect) => s.x + s.rx > l && s.x - s.rx < r && s.y + s.ry > t && s.y - s.ry < b;
+    // What was drawn last frame, so only that is cleared (not both whole canvases).
+    let dirty: [CanvasRenderingContext2D, number, number, number, number][] = [];
+    const clear = (all = false) => {
+      for (const [c, x, y, w, h] of dirty) c.clearRect(x, y, w, h);
+      dirty = [];
+      if (all) for (const c of [bctx, fctx]) c.clearRect(0, 0, c.canvas.width, c.canvas.height);
+    };
+    // Stamp a picture covering `part` (inside the element's area) through the element's light onto a
+    // canvas, at the given density.
+    const stamp = (e: (typeof elements)[number], part: Rect, picture: HTMLImageElement, scratch: CanvasRenderingContext2D, w: number, h: number, onto: CanvasRenderingContext2D, density: number) => {
+      scratch.globalCompositeOperation = "copy";
+      scratch.drawImage(e.mask, part[0] - e.area[0], part[1] - e.area[1], part[2] - part[0], part[3] - part[1], 0, 0, w, h);
+      scratch.globalCompositeOperation = "source-in";
+      scratch.drawImage(picture, 0, 0, w, h);
+      const x = Math.round((part[0] + PAD) * density), y = Math.round((part[1] + PAD) * density);
+      onto.drawImage(scratch.canvas, x, y);
+      dirty.push([onto, x, y, w, h]);
     };
 
     // The light and its wake, k = 1..n steps behind it, smaller and dimmer the further back.
     const n = Math.round(TAIL / SPACING), dt = SPACING / SPEED, end = Math.max(...legs.map((l) => l.t1)) + n * dt + 60;
-    const start0 = performance.now();
+    let start0 = 0;
     const tick = (now: number) => {
-      const elapsed = now - start0;
-      for (const mk of masks) mk.used = 0;
+      if (thisRun !== run.current) return;
+      start0 ||= now;
+      const elapsed = now - start0, spots: Spot[] = [];
       for (let k = 0; k < n; k++) {
         const at = elapsed - k * dt;
         if (at < 0) break;
@@ -365,22 +414,47 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
         for (const leg of legs) {
           // A light at rest has no wake: only its present spot, spreading and dimming.
           if (at < leg.t0 || at >= leg.t1 || (leg.rest && k > 0)) continue;
-          const u = (at - leg.t0) / (leg.t1 - leg.t0), [x, y] = leg.at(u), [rx, ry] = leg.size(u);
-          const scale = leg.rest ? 1 + 0.4 * u : 0.55 + 0.45 * fall, opacity = leg.rest ? (1 - u) ** 1.5 : alpha;
-          for (const mk of masks) if (leg.t0 <= mk.until + 0.5) place(mk, x, y, rx * scale, ry * scale, opacity);
+          const u = (at - leg.t0) / (leg.t1 - leg.t0), [x, y] = leg.at(u), [rx, ry] = leg.size(u), scale = leg.rest ? 1 + 0.4 * u : 0.55 + 0.45 * fall;
+          spots.push({ x, y, rx: rx * scale, ry: ry * scale, opacity: leg.rest ? (1 - u) ** 1.5 : alpha, t0: leg.t0 });
         }
       }
-      for (const mk of masks) for (let i = mk.used; i < mk.spots.length; i++) mk.spots[i].style.display = "none";
-      if (elapsed < end) frame.current = requestAnimationFrame(tick);
-      else {
-        // Back to the empty mask before removing the trace's own: an element whose mask no longer
-        // exists is drawn unmasked, which would leave every outline lit.
-        for (const el of root.querySelectorAll("[data-el]")) el.setAttribute("mask", `url(#${uid}-none)`);
-        masksG.replaceChildren();
+      clear();
+      // The light only moves forward. An element accepts light from a spot only if its leg starts no
+      // later than the element's own last moment in the trace: it glows as the light approaches and
+      // while the light is on it, and its wake fades, but a later step passing nearby can't light it
+      // again. Elements no accepted spot reaches are skipped.
+      for (const e of elements) {
+        const mine = spots.filter((s) => s.opacity > 0.02 && s.t0 <= e.until + 0.5 && touches(s, e.area));
+        if (!mine.length) continue;
+        const m = e.mctx;
+        m.setTransform(1, 0, 0, 1, 0, 0);
+        m.clearRect(0, 0, e.w1, e.h1);
+        m.setTransform(1, 0, 0, 1, -e.area[0], -e.area[1]);
+        m.fillStyle = e.spot;
+        for (const s of mine) {
+          m.save();
+          m.globalAlpha = s.opacity;
+          m.translate(s.x, s.y);
+          m.scale(s.rx, s.ry);
+          m.beginPath();
+          m.arc(0, 0, 1, 0, 2 * Math.PI);
+          m.fill();
+          m.restore();
+        }
+        stamp(e, e.tight, e.front, e.tctx, e.w, e.h, fctx, dpr);
+        if (e.back) stamp(e, e.area, e.back, e.bctx2, e.w1, e.h1, bctx, 1);
       }
+      if (elapsed < end) frame.current = requestAnimationFrame(tick);
+      else clear(true);
     };
-    frame.current = requestAnimationFrame(tick);
-  }, [box, ids, points, uid]);
+    // Start once every picture is ready (a few milliseconds; they are drawn from inline SVG).
+    Promise.all(elements.flatMap((e) => [e.front, e.back].filter((p): p is HTMLImageElement => !!p).map((p) => p.decode()))).then(
+      () => {
+        if (thisRun === run.current) frame.current = requestAnimationFrame(tick);
+      },
+      () => {},
+    );
+  }, [box, ids, points, snake, uid]);
 
   // Once, when the diagram comes into view; again from the button.
   useEffect(() => {
@@ -395,9 +469,10 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
       { threshold: 0.5 },
     );
     io.observe(root);
-    const loop = frame;
+    const loop = frame, current = run;
     return () => {
       io.disconnect();
+      current.current++;
       cancelAnimationFrame(loop.current);
     };
   }, [trace]);
@@ -467,37 +542,9 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
   return (
     <div className="chain-wrap">
       <div ref={ref} className="chain" data-focus={focus ?? undefined} onPointerLeave={(e) => e.pointerType === "mouse" && setPreview(null)}>
+        {/* The light: the bloom behind the boxes, the lit outlines and links in front. */}
+        <canvas ref={backRef} className="chain-light chain-light-back" aria-hidden="true" />
         <svg className="chain-links" aria-hidden="true">
-          <defs>
-            <linearGradient id={`${uid}-hue`} gradientUnits="userSpaceOnUse" x1={span[0][0]} y1={span[0][1]} x2={span[1][0]} y2={span[1][1]}>
-              {/* Blue until the timelock, yellow after it: the change happens where a decision becomes an action. */}
-              <stop offset="0.6" className="chain-hue-start" />
-              <stop offset="0.8" className="chain-hue-end" />
-            </linearGradient>
-            <radialGradient id={`${uid}-spot`}>
-              <stop offset="0" stopColor="#fff" />
-              <stop offset="0.5" stopColor="#fff" stopOpacity="0.8" />
-              <stop offset="1" stopColor="#fff" stopOpacity="0" />
-            </radialGradient>
-            <filter id={`${uid}-haze`} x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="2.5" />
-            </filter>
-            <filter id={`${uid}-bloom`} x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="14" />
-            </filter>
-            {/* Shows nothing: every glowing element wears it until a trace gives it its own mask. */}
-            <mask id={`${uid}-none`} maskUnits="userSpaceOnUse" x="-500" y="-500" width="5000" height="5000" />
-            {/* The trace's masks, made and painted by the frame loop. */}
-            <g ref={masksRef} />
-          </defs>
-          {/* The bloom: a coloured glow behind each box, wherever the light is. */}
-          <g className="chain-bloom" fill={`url(#${uid}-hue)`}>
-            {boxes.map((b) => (
-              <g key={b.id} data-el={`box:${b.id}`} mask={`url(#${uid}-none)`}>
-                <rect filter={`url(#${uid}-bloom)`} x={b.l - 2} y={b.t - 2} width={b.r - b.l + 4} height={b.b - b.t + 4} rx={CORNER + 2} />
-              </g>
-            ))}
-          </g>
           {wires.map((w, i) => {
             const l = LINKS[i], on = focus !== null && (l.from === focus || l.to === focus);
             return (
@@ -521,23 +568,7 @@ export function ContractsDiagram({ contracts, holders }: { contracts: DiagramCon
             );
           })}
         </svg>
-        {/* The outlines and links again, in light, over the boxes; each shows only where its mask is lit. */}
-        <svg className="chain-glow" aria-hidden="true">
-          <g stroke={`url(#${uid}-hue)`}>
-            {boxes.map((b) => (
-              <g key={b.id} data-el={`box:${b.id}`} mask={`url(#${uid}-none)`}>
-                <rect className="chain-haze" filter={`url(#${uid}-haze)`} x={b.l + 0.5} y={b.t + 0.5} width={b.r - b.l - 1} height={b.b - b.t - 1} rx={CORNER - 0.5} />
-                <rect className="chain-lit" x={b.l + 0.5} y={b.t + 0.5} width={b.r - b.l - 1} height={b.b - b.t - 1} rx={CORNER - 0.5} />
-              </g>
-            ))}
-            {wires.map((w) => (
-              <g key={w.key} data-el={`link:${w.key}`} mask={`url(#${uid}-none)`}>
-                <path className="chain-haze" filter={`url(#${uid}-haze)`} d={w.d} />
-                <path className="chain-lit" d={w.d} />
-              </g>
-            ))}
-          </g>
-        </svg>
+        <canvas ref={frontRef} className="chain-light chain-light-front" aria-hidden="true" />
         <button {...nodeProps("holders")} aria-label={`Step 01, shareholders: ${holders.length} stakeholders`}>
           <span className="chain-top">
             <span className="chain-avatars">
