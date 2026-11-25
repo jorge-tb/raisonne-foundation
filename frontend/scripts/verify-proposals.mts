@@ -12,6 +12,7 @@ import { ArtRegistry, CHAIN_ID } from "@/generated/contracts";
 import { getCapTable } from "@/lib/capTable";
 import { createClient, DEPLOYMENT_BLOCK, LOG_EMITTERS, scanLogs } from "@/lib/chain";
 import { discoverLogBlocks } from "@/lib/discovery";
+import { proposalTitle } from "@/lib/format";
 import { getProposals } from "@/lib/proposals";
 import { verifyAction } from "@/lib/verify";
 
@@ -46,7 +47,7 @@ const proposals = await getProposals(client, scan);
 console.log(`== Proposals (${proposals.length})\n`);
 for (const p of proposals) {
   console.log(`${p.state.padEnd(9)} ${p.id}`);
-  console.log(`          ${p.description.split(/[.;]/)[0]}`);
+  console.log(`          ${proposalTitle(p.description)}`);
   for (const [i, action] of p.actions.entries()) {
     const v = await verifyAction(action.kind, p.description, process.env.IPFS_GATEWAY || undefined);
     const prefix = `          action ${i}:`;
