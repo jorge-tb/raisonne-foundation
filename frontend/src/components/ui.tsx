@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { etherscanAddress, etherscanBlock, formatTimestamp, STATE_GLYPH } from "@/lib/format";
 import type { ProposalState } from "@/lib/proposals";
 import type { Snapshot } from "@/lib/server/snapshot";
-import type { Verification } from "@/lib/verify";
 
 // Full identifiers, always: wrapped, never truncated.
 export function Hash({ children }: { children: ReactNode }) {
@@ -46,17 +45,4 @@ export function AsOf({ snapshot }: { snapshot: Snapshot }) {
       {snapshot.logSource === "etherscan" ? "; log blocks discovered via Etherscan" : ""}.
     </p>
   );
-}
-
-const VERDICT_LABEL: Record<Verification["status"], string> = {
-  match: "✓ Match",
-  mismatch: "✕ Mismatch",
-  unverifiable: "? Unverifiable",
-  "revokes-gallery": "⊘ Revokes gallery",
-  "not-applicable": "– Not applicable",
-  malformed: "! Malformed calldata",
-};
-
-export function VerdictLabel({ status }: { status: Verification["status"] }) {
-  return <strong className={`verdict verdict-${status}`}>{VERDICT_LABEL[status]}</strong>;
 }

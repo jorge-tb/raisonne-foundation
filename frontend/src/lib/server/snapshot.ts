@@ -1,7 +1,8 @@
 import "server-only";
 import { cacheLife } from "next/cache";
-import type { Hex } from "viem";
-import { ArtRegistry, CHAIN_ID } from "@/generated/contracts";
+import { formatEther, isAddressEqual, type BaseError, type ContractFunctionRevertedError, type Hex } from "viem";
+import type { ActionKind } from "../actions";
+import { ArtRegistry, CHAIN_ID, FundTreasury } from "@/generated/contracts";
 import { getCapTable } from "../capTable";
 import { getContractsState } from "../contracts";
 import { createClient, DEPLOYMENT_BLOCK, LOG_EMITTERS, scanLogs } from "../chain";
@@ -70,6 +71,36 @@ async function load() {
 
   const enabledAt = async (root: Hex) =>
     client.readContract({ ...ArtRegistry, functionName: "isGalleryEnabled", args: [root], blockNumber: head.number });
+  const treasuryBalance = await client.getBalance({ address: FundTreasury.address, blockNumber: head.number });
+
+  // Why executing this action now would revert, if it would. Read at the snapshot block, so only a
+  // warning: the chain can change before execution. RPC failures throw, like every other read here.
+  const revertWarning = async (action: ActionKind): Promise<string | null> => {
+    switch (action.kind) {
+      case "revoke-gallery":
+        return (await enabledAt(action.root)) ? null : "The gallery isn't enabled right now, so revoking it fails and nothing changes.";
+      case "pay":
+        return action.amount > treasuryBalance
+          ? `The treasury holds ${formatEther(treasuryBalance)} ETH and this pays ${formatEther(action.amount)} ETH. If it passes, execution fails and nothing is paid.`
+          : null;
+      case "sell": {
+        try {
+          const owner = await client.readContract({ ...ArtRegistry, functionName: "ownerOf", args: [action.artworkId], blockNumber: head.number });
+          return isAddressEqual(owner, FundTreasury.address)
+            ? null
+            : "The treasury doesn't hold this artwork right now. If it passes, execution fails and nothing moves.";
+        } catch (error) {
+          // Matched by name: an unminted token reverts with this; anything else is a real failure.
+          const revert = (error as BaseError).walk?.((e) => (e as Error).name === "ContractFunctionRevertedError");
+          if ((revert as ContractFunctionRevertedError | null)?.data?.errorName === "ERC721NonexistentToken")
+            return "This artwork doesn't exist. If it passes, execution fails.";
+          throw error;
+        }
+      }
+      default:
+        return null;
+    }
+  };
 
   const votes = await getVotes(client, scan, proposals, capTable?.holders.map((h) => h.address) ?? []);
 
@@ -82,9 +113,8 @@ async function load() {
         p.actions.map(async (a) => ({
           ...a,
           verification: await verifyAction(a.kind, p.description, ipfsGateway()),
-          // revokeGallery on a root that isn't enabled would revert; only meaningful while the outcome can change.
-          revertWarning:
-            a.kind.kind === "revoke-gallery" && !FINAL_STATES.includes(p.state) && !(await enabledAt(a.kind.root)),
+          // Only meaningful while the outcome can change.
+          revertWarning: FINAL_STATES.includes(p.state) ? null : await revertWarning(a.kind),
         })),
       ),
     })),
@@ -120,6 +150,7 @@ async function load() {
     contracts,
     galleries,
     tokens: tokens.sort((a, b) => (a.id < b.id ? -1 : 1)),
+    treasuryBalance,
   };
 }
 
