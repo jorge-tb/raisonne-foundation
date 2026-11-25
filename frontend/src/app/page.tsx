@@ -1,18 +1,17 @@
-import Image from "next/image";
 import Link from "next/link";
 import { formatEther, isAddressEqual } from "viem";
+import { CollectionWall } from "@/components/CollectionWall";
 import { ContractGlyph } from "@/components/ContractGlyph";
 import { HoldersEmblem } from "@/components/holders/HoldersEmblem";
 import { holdersData } from "@/components/holders/views";
-import { AcquisitionsIcon, CollectionIcon, GovernanceIcon } from "@/components/icons";
+import { AcquisitionsIcon, GovernanceIcon } from "@/components/icons";
 import { AsOf, Hash, StateLabel } from "@/components/ui";
 import { FundTreasury } from "@/generated/contracts";
+import { chooseOrder, type WallWork } from "@/lib/collectionWall";
 import { formatDuration, formatTimestamp, proposalTitle } from "@/lib/format";
+import { attribute } from "@/lib/metadata";
 import { getSnapshot, ipfsGateway } from "@/lib/server/snapshot";
 import type { ProposalState } from "@/lib/states";
-
-// Height of the paintings in the collection door (desktop); widths follow each image's proportions.
-const STRIP_PX = 180;
 
 // Anyone can propose, so the title is free text: shown whole, never parsed for a structure. Only hex
 // identifiers (addresses, hashes) are set as hashes, wherever they appear, so their wrap looks intended.
@@ -42,13 +41,21 @@ export default async function Home() {
   const { proposals, galleries, tokens, capTable, contracts } = snapshot;
   const gateway = ipfsGateway();
   const held = tokens.filter((t) => isAddressEqual(t.owner, FundTreasury.address)).length;
-  const strip = tokens
-    .flatMap((t) =>
-      t.metadata.status === "ok" && t.metadata.artwork.imageCid && t.image
-        ? [{ id: t.id, src: new URL(t.metadata.artwork.imageCid, gateway).href, ratio: t.image.ratio }]
-        : [],
-    )
-    .slice(0, 6);
+  // Every work with an image, in the loop order that keeps the wall's height steadiest.
+  const works: WallWork[] = tokens.flatMap((t) =>
+    t.metadata.status === "ok" && t.metadata.artwork.imageCid && t.image
+      ? [
+          {
+            id: t.id.toString(),
+            name: t.metadata.artwork.name,
+            by: [attribute(t.metadata.artwork, "Artist"), attribute(t.metadata.artwork, "Year")].filter(Boolean).join(", "),
+            src: new URL(t.metadata.artwork.imageCid, gateway).href,
+            ratio: t.image.ratio,
+          },
+        ]
+      : [],
+  );
+  const order = chooseOrder(works);
   const latest = proposals[0]; // newest first
   const voteOpen = proposals.some((p) => p.state === "Active");
   const latestRoot = galleries.at(-1);
@@ -66,23 +73,18 @@ export default async function Home() {
 
       {/* Three doors, each showing what's inside right now. */}
       <div className="doors">
-        <Link href="/collection" className="door door-collection">
-          <span className="door-head">
-            <CollectionIcon />
-            Collection
-          </span>
-          {strip.length > 0 && (
-            <span className="door-strip">
-              {strip.map((s) => (
-                <Image key={s.id.toString()} src={s.src} alt="" height={STRIP_PX} width={Math.round(STRIP_PX * s.ratio)} />
-              ))}
-            </span>
-          )}
-          <span className="door-caption">
-            {tokens.length} artworks, {held} held by the fund&apos;s treasury
-          </span>
-          <span className="door-go">View the collection →</span>
-        </Link>
+        {order.length > 0 ? (
+          <CollectionWall
+            order={order}
+            count={`${tokens.length} artworks · ${held === tokens.length ? "all" : held} held by the fund's treasury`}
+          />
+        ) : (
+          <Link href="/collection" className="door door-collection">
+            <span className="door-head">Collection</span>
+            <span className="door-caption">No artworks with images yet.</span>
+            <span className="door-go">View the collection →</span>
+          </Link>
+        )}
 
         <Link href="/governance" className="door door-governance">
           {/* The voting-power ring; it morphs into the Governance page's donut on the way there. */}
@@ -118,7 +120,12 @@ export default async function Home() {
           <span>
             {galleries.length} Merkle roots approved by vote, {galleries.filter((g) => g.enabled).length} enabled
           </span>
-          {latestRoot && <Hash>{latestRoot.root}</Hash>}
+          {latestRoot && (
+            <span className="small">
+              Latest: {latestRoot.minted.length} {latestRoot.minted.length === 1 ? "work" : "works"} minted from{" "}
+              <Hash>{latestRoot.root}</Hash>
+            </span>
+          )}
           <span className="muted small">Rebuild each tree and check every proof in your browser.</span>
           <span className="door-go">Verify them →</span>
         </Link>

@@ -1347,19 +1347,21 @@ button {
   font-weight: 600;
 }
 
-/* Home: one door per section, each showing what's inside right now. The collection door is the
-   largest: the paintings lead. */
+/* Home: one door per section, each showing what's inside right now. The collection opens the page
+   across the full width (the paintings lead); Governance and Acquisitions sit as a pair below it. */
 .doors {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 1rem;
   margin: 1.5rem 0 2.5rem;
 }
 
+/* Every door is a column whose link sits on its bottom edge: doors side by side share a height, so
+   their links share a line, always bottom left. */
 .door {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
-  align-content: start;
   min-width: 0;
   padding: 1rem 1.1rem;
   background: var(--surface);
@@ -1368,24 +1370,21 @@ button {
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
-/* A grid item is never narrower than its longest unbreakable word by default, so a full address in a
-   proposal title would widen the track past the padding (under the ring) and the border. */
+/* A flex item is never narrower than its longest unbreakable word by default, so a full address in a
+   proposal title would widen the door past the padding (under the ring) and the border. */
 .door > * {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.door:hover,
-.door:focus-visible {
+a.door:hover,
+a.door:focus-visible {
   border-color: var(--accent);
   color: inherit;
 }
 
-/* Spans both rows; the paintings sit at the top and the caption at the bottom. */
 .door-collection {
-  grid-row: span 2;
-  display: flex;
-  flex-direction: column;
+  grid-column: 1 / -1;
 }
 
 .door-caption {
@@ -1396,34 +1395,25 @@ button {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin: 0;
   font-weight: 700;
   font-size: 1.1rem;
 }
 
-/* One row of paintings: those that don't fit wrap to a second row, which is clipped, so none is cut in half. */
-.door-strip {
-  --strip: 180px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  height: var(--strip);
-  overflow: hidden;
-  margin: 0.25rem 0;
-}
-
-.door-strip img {
-  flex: none;
-  height: var(--strip);
-  width: auto;
-}
-
 .door-go {
+  margin-top: auto;
+  padding-top: 0.25rem;
   font-weight: 600;
   font-size: 0.9rem;
   color: var(--accent);
 }
 
-.door:hover .door-go {
+.door-caption + .door-go {
+  margin-top: 0;
+}
+
+a.door:hover .door-go,
+.door .door-go:hover {
   text-decoration: underline;
 }
 
@@ -1431,13 +1421,270 @@ button {
   .doors {
     grid-template-columns: 1fr;
   }
+}
 
-  .door-collection {
-    grid-row: auto;
+/* ---- The collection wall (components/CollectionWall.tsx) ----
+   The featured work is exactly as tall as the two justified rows beside it; nothing is cropped (every
+   box has its painting's proportions). The door keeps one height: the label row carries the spare. */
+.cw {
+  position: relative;
+  container-type: inline-size; /* the header's narrow-door rules query the door itself */
+}
+
+/* Links inside the door look like the other doors' (no underline until hovered). */
+.cw a {
+  text-decoration: none;
+}
+
+.cw .door-go:hover,
+.cw .door-go:focus-visible {
+  text-decoration: underline;
+}
+
+.cw-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+}
+
+.cw-top .door-head {
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  row-gap: 0.1rem;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.cw-count {
+  margin-left: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.cw-controls {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.cw-progress {
+  width: 6rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--rule);
+  overflow: hidden;
+}
+
+/* Fills until the next step; paused with the rotation. */
+.cw-progress i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: 0 50%;
+  animation: cw-progress linear forwards;
+}
+
+@keyframes cw-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.cw-pause {
+  font: 600 0.75rem var(--ui);
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cw-pause[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+
+.cw-art {
+  container-type: inline-size;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0.25rem 0;
+}
+
+.cw-piece {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.cw-piece img {
+  object-fit: cover; /* the box already has the painting's proportions: nothing is cut */
+}
+
+.cw-hero {
+  flex: none;
+  width: var(--cw-hero);
+  z-index: 1;
+}
+
+.cw-wall {
+  display: grid;
+  flex: 1 1 0;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cw-row {
+  display: flex;
+  gap: 8px;
+}
+
+.cw-row .cw-piece {
+  flex: var(--cw-grow) 1 0;
+  width: 0;
+}
+
+/* Side by side, the label sits under the art; the copy under the featured work is for phones. */
+.cw-label-hero,
+.cw-upnext {
+  display: none;
+}
+
+.cw-label-row {
+  width: max(var(--cw-hero), 22rem);
+  max-width: 100%;
+}
+
+.cw-label,
+.cw-label-probe .cw-label {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.cw-kicker {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.cw-title {
+  font-family: var(--title);
+  font-style: italic;
+  font-size: 1.25rem;
+  line-height: 1.15;
+  color: var(--foreground);
+  text-decoration: none;
+}
+
+.cw-title:hover {
+  text-decoration: underline;
+}
+
+.cw-by {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Loads the next work to enter without showing it (a real box, so the browser fetches it). */
+.cw-preload {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Measures a label off-screen with the real fonts, at the width it will have. */
+.cw-label-probe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Phones (door content under 572 px, the same threshold as lib/collectionWall.ts): the featured work
+   whole in a square of at most 440 px, its label, then the next works in loop order on one strip of
+   fixed height. Decided by CSS from the door's own width, so the first render is already right. */
+@container (max-width: 571.98px) {
+  .cw-art {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .door-strip {
-    --strip: 96px;
+  .cw-hero {
+    --cw-side: min(100cqw, 440px);
+    align-self: center;
+    width: calc(var(--cw-side) * min(1, var(--cw-r)));
+    margin-block: calc((var(--cw-side) - var(--cw-side) * min(1, 1 / var(--cw-r))) / 2);
+  }
+
+  .cw-label-hero {
+    display: block;
+  }
+
+  .cw-label-hero .cw-label {
+    min-height: 7.6rem; /* room for a three-line title, so the footer never moves */
+    align-content: start;
+    padding-top: 0.4rem;
+  }
+
+  .cw-label-row {
+    display: none;
+  }
+
+  .cw-upnext {
+    display: block;
+    flex-basis: 100%;
+  }
+
+  /* The two rows become one strip in loop order: row 1 left→right, then row 2 right→left. (flex: none:
+     in the vertical stack the side-by-side "flex: 1 1 0" would collapse it to no height.) */
+  .cw-wall {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 0.35rem 8px;
+    height: calc(76px + 1.4rem);
+    overflow: hidden;
+  }
+
+  .cw-row {
+    display: contents;
+  }
+
+  .cw-row .cw-piece {
+    order: var(--cw-path);
+    flex: none;
+    width: auto;
+    height: 76px;
+  }
+}
+
+@container (max-width: 640px) {
+  .cw-top .cw-count {
+    flex-basis: 100%;
+    margin-left: 0;
+    white-space: normal;
+  }
+
+  .cw-progress {
+    width: 4rem;
   }
 }
 
