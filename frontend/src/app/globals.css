@@ -663,6 +663,13 @@ button {
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
+/* A grid item is never narrower than its longest unbreakable word by default, so a full address in a
+   proposal title would widen the track past the padding (under the ring) and the border. */
+.door > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .door:hover,
 .door:focus-visible {
   border-color: var(--accent);
@@ -1275,6 +1282,25 @@ button {
 .door-governance {
   position: relative;
   padding-right: 6.5rem;
+}
+
+/* Latest proposal: the state on its own line, then the title (free text, any length) at a reading size. */
+.door-proposal {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.door-proposal-title {
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.door-proposal .hash {
+  font-size: 0.85em;
+}
+
+.door-proposal .nowrap {
+  white-space: nowrap;
 }
 
 .holders-emblem {
