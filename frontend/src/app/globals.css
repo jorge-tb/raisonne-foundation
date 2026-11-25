@@ -1620,7 +1620,7 @@ a.door:hover .door-go,
 /* Phones (door content under 572 px, the same threshold as lib/collectionWall.ts): the featured work
    whole in a square of at most 440 px, its label, then the next works in loop order on one strip of
    fixed height. Decided by CSS from the door's own width, so the first render is already right. */
-@container (max-width: 571.98px) {
+@container (width < 572px) {
   .cw-art {
     flex-direction: column;
     align-items: stretch;

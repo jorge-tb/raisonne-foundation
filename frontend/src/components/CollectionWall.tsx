@@ -29,7 +29,10 @@ export function CollectionWall({ order, count, initialStep = 0, autoplay = true 
   const [inner, setInner] = useState<number | null>(null);
   const width = inner ?? ASSUMED_INNER;
   const n = perRow(width);
-  const visible = visibleFor(width, order.length);
+  // Phones: one plain queue ("Up next"), every work in line, no corner exchange: the first in the strip
+  // becomes featured and everyone moves one place left. Desktop keeps the two-row loop.
+  const isPhone = inner !== null && stacked(inner);
+  const visible = isPhone ? order.length : visibleFor(width, order.length);
 
   const [loop, setLoop] = useState<LoopState>(() => startAt(order, visibleFor(ASSUMED_INNER, order.length), perRow(ASSUMED_INNER), initialStep));
   const [step, setStep] = useState(0);
@@ -44,7 +47,8 @@ export function CollectionWall({ order, count, initialStep = 0, autoplay = true 
   useLayoutEffect(() => {
     const el = artRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setInner(Math.round(e.contentRect.width)));
+    // Not rounded: the phone layout switch must agree exactly with the CSS container query (width < 572px).
+    const ro = new ResizeObserver(([e]) => setInner(e.contentRect.width));
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -92,18 +96,26 @@ export function CollectionWall({ order, count, initialStep = 0, autoplay = true 
   }, []);
 
   // ---- One step, animated FLIP-style with the Web Animations API (always ends at the final state) ----
-  const before = useRef<{ rects: Map<string, DOMRect>; leaving: HTMLElement | null } | null>(null);
+  const before = useRef<{ rects: Map<string, DOMRect>; wall: DOMRect; featured: string; phone: boolean; leaving: HTMLElement | null } | null>(null);
   const doStep = useCallback(() => {
     const root = rootRef.current;
     if (!root) return;
     const rects = new Map<string, DOMRect>();
     root.querySelectorAll<HTMLElement>("[data-work]").forEach((el) => rects.set(el.dataset.work!, el.getBoundingClientRect()));
-    const leavingId = loop.waiting.length && loop.ring.length > n + 1 ? loop.ring[n + 1].id : null;
+    // What visibly leaves: on desktop the work exchanged at the corner; on phones the featured work,
+    // which fades where it stands instead of travelling to the (hidden) end of the queue.
+    const leavingId = isPhone ? loop.ring[0].id : loop.waiting.length && loop.ring.length > n + 1 ? loop.ring[n + 1].id : null;
     const leavingEl = leavingId ? root.querySelector<HTMLElement>(`[data-work="${leavingId}"]`) : null;
-    before.current = { rects, leaving: leavingEl ? ghostOf(leavingEl, root) : null };
+    before.current = {
+      rects,
+      wall: root.querySelector(".cw-wall")!.getBoundingClientRect(),
+      featured: loop.ring[0].id,
+      phone: isPhone,
+      leaving: leavingEl ? ghostOf(leavingEl, root) : null,
+    };
     setLoop((s) => advance(s, n));
     setStep((k) => k + 1);
-  }, [loop, n]);
+  }, [loop, n, isPhone]);
 
   useLayoutEffect(() => {
     const root = rootRef.current, prev = before.current;
@@ -112,7 +124,27 @@ export function CollectionWall({ order, count, initialStep = 0, autoplay = true 
     const glide = !matchMedia("(prefers-reduced-motion: reduce)").matches;
     const pieces = [...root.querySelectorAll<HTMLElement>("[data-work]")];
     const last = Math.max(...pieces.map((p) => Number(p.dataset.path)));
-    for (const el of pieces) {
+    const glideFrom = (el: HTMLElement, a: DOMRect, b: DOMRect, duration: number, delay: number) =>
+      el.animate(
+        [{ transform: `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width})`, transformOrigin: "0 0" }, { transform: "none", transformOrigin: "0 0" }],
+        { duration, delay, easing: "cubic-bezier(0.3, 0.7, 0.2, 1)", fill: "backwards" },
+      );
+    if (prev.phone) {
+      // Phones: the next work grows into the featured square; the strip slides one place left; works
+      // coming into view enter from the right edge, the way the queue flows.
+      const wall = root.querySelector(".cw-wall")!.getBoundingClientRect();
+      const within = (r: DOMRect, box: DOMRect) => r.width > 0 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1 && r.right <= box.right + 1;
+      for (const el of pieces) {
+        const a = prev.rects.get(el.dataset.work!), b = el.getBoundingClientRect(), path = Number(el.dataset.path);
+        if (!within(b, wall) && path !== 0) continue; // out of view: nothing to show
+        if (!glide) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, fill: "backwards" });
+        else if (path === 0 && a) glideFrom(el, a, b, 1000, 150);
+        else if (el.dataset.work === prev.featured) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 600, delay: 900, fill: "backwards" });
+        else if (a && within(a, prev.wall)) glideFrom(el, a, b, 700, 250 + (path - 1) * 90);
+        else el.animate([{ transform: "translateX(40px)", opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 650, delay: 350 + (path - 1) * 90, easing: "cubic-bezier(0.3, 0.7, 0.2, 1)", fill: "backwards" });
+      }
+    }
+    for (const el of prev.phone ? [] : pieces) {
       const a = prev.rects.get(el.dataset.work!), b = el.getBoundingClientRect(), path = Number(el.dataset.path);
       if (!a || !glide || !b.width) {
         el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, delay: glide ? 800 : 0, easing: "ease", fill: "backwards" });
@@ -207,10 +239,10 @@ export function CollectionWall({ order, count, initialStep = 0, autoplay = true 
         </div>
         <div className="cw-wall">
           <span className="cw-kicker cw-upnext">Up next</span>
-          {l.rows.map((row, ri) => (
+          {(isPhone ? [ring.slice(1), []] : l.rows).map((row, ri) => (
             <div className="cw-row" key={ri}>
               {row.map((w, c) => {
-                const path = ri === 0 ? 1 + c : 2 * l.n - c;
+                const path = isPhone ? 1 + c : ri === 0 ? 1 + c : 2 * l.n - c;
                 return (
                   <Link
                     key={w.id}
