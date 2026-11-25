@@ -41,5 +41,6 @@ export function formatDuration(seconds: bigint): string {
 
 export const formatBps = (bps: bigint) => `${(Number(bps) / 100).toFixed(2)}%`;
 
-// First clause of a free-text description, used as a title.
-export const proposalTitle = (description: string) => description.split(/[.;\n]/)[0].trim();
+// First clause of a free-text description, used as a title. A period ends the clause only when
+// followed by whitespace or the end, so amounts like "0.0045 ETH" stay whole.
+export const proposalTitle = (description: string) => description.split(/[;\n]|\.(?=\s|$)/)[0].trim();
