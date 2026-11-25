@@ -52,7 +52,7 @@ export async function runProposalCheck(p: Props, rpc: string, gateway: string): 
     // Target must be the hardcoded ArtRegistry and the selector addGallery / revokeGallery.
     const action = decodeGalleryAction(target, contents.calldatas[i]);
     if (!action) {
-      lines.push({ status: "info", text: `${n}: not a gallery action; nothing to rebuild.` });
+      lines.push({ status: "info", text: `${n}: not a gallery action; nothing to rebuild. Bound to the vote by the id check above.` });
       continue;
     }
     if (action.kind === "revoke") {

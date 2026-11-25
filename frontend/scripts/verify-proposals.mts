@@ -67,11 +67,18 @@ for (const p of proposals) {
       case "revokes-gallery":
         console.log(`${prefix} REVOKES GALLERY ${v.root}`);
         break;
-      case "not-applicable":
-        console.log(`${prefix} NOT APPLICABLE (target ${action.target})`);
+      case "not-applicable": {
+        // Nothing to rebuild: say what the decoded call does.
+        const k = action.kind;
+        if (k.kind === "pay") console.log(`${prefix} PAYS ${formatEther(k.amount)} ETH to ${k.to} (reason: ${JSON.stringify(k.reason)})`);
+        else if (k.kind === "sell") console.log(`${prefix} SELLS artwork #${k.artworkId} to ${k.to}`);
+        else if (k.kind === "upgrade") console.log(`${prefix} UPGRADES ${k.contract} to ${k.implementation}`);
+        else if (k.kind === "contract-call") console.log(`${prefix} CALLS ${k.contract}.${k.functionName}`);
+        else console.log(`${prefix} NOT DECODED (target ${action.target}, selector ${action.calldata.slice(0, 10)})`);
         break;
+      }
       case "malformed":
-        console.log(`${prefix} MALFORMED CALLDATA (${v.error})`);
+        console.log(`${prefix} MALFORMED CALLDATA for ${v.contract} (${v.error})`);
         break;
     }
   }

@@ -450,6 +450,8 @@ ul.plain {
 
 .card header h2 {
   margin: 0.25rem 0 0.5rem;
+  /* Titles are free text: a full address in one must wrap, not run off a phone screen. */
+  overflow-wrap: anywhere;
 }
 
 .state {
@@ -487,6 +489,709 @@ ol.actions {
 
 ol.actions > li {
   margin-bottom: 0.75rem;
+}
+
+/* Proposal actions: one layered card each (components/ActionCard.tsx). What it does (category, a
+   sentence in the proposal's tense, a flow), what needs a second look, then the call under the hood.
+   Colour carries meaning only: accent for the fund, yellow for a receiver, ink for protocol calls,
+   red for failures alone. Container queries, so a card lays itself out by its own width. */
+ol.actions.single {
+  list-style: none;
+  padding-left: 0;
+}
+
+.ac {
+  --ac-bad: var(--vote-against);
+  --ac-bad-soft: color-mix(in srgb, var(--vote-against) 13%, var(--surface));
+  container-type: inline-size;
+  display: grid;
+  gap: 0.9rem;
+  min-width: 0;
+  margin: 0.25rem 0 1rem;
+  padding: 1rem 1.15rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+}
+
+.ac-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+}
+
+.ac-cat {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+}
+
+.ac-cat.treasury {
+  color: var(--on-yellow);
+  background: var(--yellow);
+}
+
+.ac-cat.collection {
+  color: var(--surface);
+  background: var(--accent);
+}
+
+.ac-cat.protocol {
+  color: var(--background);
+  background: var(--foreground);
+}
+
+.ac-cat.unknown {
+  color: var(--muted);
+  border: 1px dashed var(--muted);
+}
+
+.ac-cat.malformed {
+  color: var(--ac-bad);
+  background: var(--ac-bad-soft);
+}
+
+.ac-when {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.ac-sentence {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.ac-verb {
+  font-weight: 800;
+}
+
+.ac-off .ac-verb {
+  color: var(--muted);
+}
+
+/* Identifiers: even pieces that wrap between, never inside; "stacked" puts them on separate lines. */
+.ac-id {
+  font-family: var(--mono);
+  font-size: 0.82em;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.ac-sentence .ac-id,
+.ac-note .ac-id {
+  background: var(--panel);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+}
+
+.ac-id > span {
+  white-space: nowrap;
+}
+
+.ac-id.stacked {
+  display: block;
+  line-height: 1.35;
+}
+
+.ac-id.stacked > span {
+  display: block;
+}
+
+.ac-id.stacked wbr {
+  display: none;
+}
+
+/* ---- Flow: each end at its own width, the path fills between and never shrinks ---- */
+.ac-flow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ac-end {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 42%;
+}
+
+.ac-end-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.ac-end-icon.receiver {
+  color: var(--on-yellow);
+  background: var(--yellow);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--yellow) 60%, transparent);
+}
+
+.ac-end-icon.ink {
+  color: var(--background);
+  background: var(--foreground);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+.ac-end-icon.neutral {
+  color: var(--foreground);
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--rule);
+}
+
+.ac-end-icon.unknown {
+  color: var(--muted);
+  background: var(--panel);
+  box-shadow: 0 0 0 1px var(--rule);
+}
+
+.ac-end-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.ac-end-text b {
+  font-size: 0.88rem;
+}
+
+.ac-end-text .ac-id,
+.ac-end-note {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.ac-path {
+  display: flex;
+  align-items: center;
+  flex: 1 0 auto;
+  min-width: 0;
+}
+
+.ac-line {
+  position: relative;
+  flex: 1;
+  min-width: 2.25rem;
+  height: 2px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent) 70%, var(--surface));
+  overflow: hidden;
+}
+
+.ac-line-end {
+  overflow: visible;
+}
+
+.ac-line-end::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid var(--accent);
+  border-right: 2px solid var(--accent);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.ac-cat-protocol .ac-line {
+  background: var(--foreground);
+}
+
+.ac-cat-protocol .ac-line-end::after {
+  border-color: var(--foreground);
+}
+
+.ac-cat-unknown .ac-line,
+.ac-cat-malformed .ac-line,
+.ac-off .ac-line {
+  background: repeating-linear-gradient(90deg, var(--muted) 0 5px, transparent 5px 10px);
+  opacity: 0.7;
+}
+
+.ac-cat-unknown .ac-line-end::after,
+.ac-cat-malformed .ac-line-end::after,
+.ac-off .ac-line-end::after {
+  border-color: var(--muted);
+}
+
+.ac-cargo {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  padding: 0 0.5rem;
+  min-width: 0;
+  max-width: 15rem;
+}
+
+.ac-cargo-sub {
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: var(--muted);
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* What moves, set as type: solid figure, unit in small caps. */
+.ac-amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font: 600 1.3rem/1.1 var(--mono);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums slashed-zero;
+  white-space: nowrap;
+  color: var(--foreground);
+}
+
+.ac-sentence .ac-amount {
+  font-size: 1.08rem;
+}
+
+.ac-amount small {
+  font: 800 0.6rem var(--ui);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.ac-amount.ac-ink {
+  font-size: 1.05rem;
+}
+
+.ac-amount.ac-fn-name {
+  font-size: 0.95rem;
+}
+
+.ac-amount.ac-muted {
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.ac-amount.ac-bad {
+  font-size: 0.95rem;
+  color: var(--ac-bad);
+}
+
+.ac-off .ac-amount,
+.ac-off .ac-amount small {
+  color: var(--muted);
+}
+
+.ac-meter {
+  width: 96px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--rule);
+  overflow: hidden;
+}
+
+.ac-meter span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.ac-off .ac-meter span {
+  background: var(--muted);
+}
+
+.ac-tree {
+  display: inline-flex;
+  gap: 2px;
+  align-self: center;
+}
+
+.ac-tree i {
+  width: 4px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+.ac-tree i:nth-child(even) {
+  background: color-mix(in srgb, var(--accent) 55%, var(--surface));
+}
+
+.ac-off .ac-tree i {
+  background: var(--muted);
+}
+
+.ac-art {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.25rem 0.6rem 0.25rem 0.25rem;
+  border-radius: 10px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  color: inherit;
+  text-decoration: none;
+}
+
+.ac-art img,
+.ac-art-blank {
+  flex: none;
+  height: 44px;
+  width: auto;
+  border-radius: 5px;
+}
+
+.ac-art-blank {
+  width: 34px;
+  background: var(--rule);
+}
+
+.ac-art > span {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.ac-art b {
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.ac-off .ac-art {
+  border-style: dashed;
+  background: transparent;
+}
+
+.ac-off .ac-art img {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.ac-off .ac-end-icon {
+  color: var(--muted);
+  background: var(--panel);
+  box-shadow: none;
+}
+
+/* Live: a soft light travels from source to receiver. */
+.ac-live .ac-line::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: -30%;
+  width: 30%;
+  height: 8px;
+  border-radius: 8px;
+  background: radial-gradient(closest-side, #fff, color-mix(in srgb, var(--glow) 60%, transparent), transparent);
+  animation: ac-travel 2.4s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+
+.ac-live .ac-line-end::before {
+  animation-delay: 1.2s;
+}
+
+@keyframes ac-travel {
+  0% {
+    left: -30%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+.ac-quote {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0.05rem 0 0.05rem 0.85rem;
+  border-left: 3px solid var(--yellow);
+  overflow-wrap: anywhere;
+}
+
+.ac-quote q {
+  font-family: var(--title);
+  font-style: italic;
+  font-size: 1.05rem;
+}
+
+/* ---- Before you vote: calm, one place, with what to do; red only for failures ---- */
+.ac-note {
+  display: grid;
+  gap: 0.45rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--rule);
+}
+
+.ac-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.ac-note ul {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ac-note li {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr);
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.ac-note li b {
+  color: var(--foreground);
+}
+
+.ac-note-icon {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--foreground);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.ac-note li.fail b,
+.ac-note li.fail .ac-note-icon {
+  color: var(--ac-bad);
+}
+
+.ac-note li.fail .ac-note-icon {
+  background: var(--ac-bad-soft);
+}
+
+.ac-note a {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- Under the hood ---- */
+.ac-hood {
+  border-top: 1px solid var(--rule);
+  padding-top: 0.6rem;
+}
+
+.ac-hood summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.ac-hood-body {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 0.7rem;
+  min-width: 0;
+}
+
+.ac-receipt {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.35rem 1rem;
+  margin: 0;
+  padding: 0.8rem 0.9rem;
+  font-size: 0.86rem;
+  background: var(--panel);
+  border-radius: 10px;
+}
+
+.ac-receipt dt {
+  margin: 0;
+  color: var(--muted);
+}
+
+.ac-receipt dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ac-fn,
+.ac-mono,
+.ac-code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+.ac-fn {
+  font-weight: 700;
+}
+
+.ac-checks {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.86rem;
+}
+
+.ac-checks li {
+  display: grid;
+  grid-template-columns: 1.2rem minmax(0, 1fr);
+  gap: 0.3rem;
+  overflow-wrap: anywhere;
+}
+
+.ac-checks li > span:first-child {
+  font-weight: 800;
+}
+
+.ac-checks .pass > span:first-child {
+  color: var(--accent);
+}
+
+.ac-checks .fail > span:first-child {
+  color: var(--ac-bad);
+}
+
+.ac-checks .info > span:first-child {
+  color: var(--muted);
+}
+
+.ac-calldata {
+  display: block;
+  padding: 0.6rem 0.7rem;
+  font: 0.74rem/1.5 var(--mono);
+  background: var(--panel);
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.ac-selector {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.ac-hood-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
+.ac-copy {
+  font: 600 0.78rem var(--ui);
+  color: var(--accent);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+}
+
+.ac-copy:hover {
+  border-color: var(--accent);
+}
+
+/* Narrow cards: the flow turns vertical, source above receiver. */
+@container (max-width: 640px) {
+  .ac-flow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .ac-end {
+    max-width: 100%;
+  }
+
+  .ac-path {
+    flex: none;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-left: 16px;
+  }
+
+  .ac-line {
+    flex: none;
+    width: 2px;
+    height: 1rem;
+    min-width: 0;
+  }
+
+  .ac-cat-unknown .ac-line,
+  .ac-cat-malformed .ac-line,
+  .ac-off .ac-line {
+    background: repeating-linear-gradient(180deg, var(--muted) 0 5px, transparent 5px 9px);
+  }
+
+  .ac-line-end::after {
+    right: auto;
+    left: 50%;
+    top: auto;
+    bottom: 0;
+    transform: translateX(-50%) rotate(135deg);
+  }
+
+  .ac-cargo {
+    justify-items: start;
+    max-width: none;
+    padding: 0.35rem 0 0.35rem 0.9rem;
+  }
+
+  .ac-cargo-sub {
+    text-align: left;
+  }
+
+  .ac-live .ac-line::before {
+    display: none;
+  }
+}
+
+/* Very narrow: labels above values in the decoded call. */
+@container (max-width: 460px) {
+  .ac-receipt {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.1rem;
+  }
+
+  .ac-receipt dd + dt {
+    margin-top: 0.45rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ac-live .ac-line::before {
+    animation: none;
+    display: none;
+  }
 }
 
 ol.proof {

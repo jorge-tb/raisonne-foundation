@@ -6,10 +6,11 @@ import { GovernanceNav } from "@/components/GovernanceNav";
 import { HolderChip } from "@/components/holders/HolderChip";
 import { ProposalTimeline } from "@/components/ProposalTimeline";
 import { ProposalVote, type VoteView } from "@/components/ProposalVote";
+import { ActionCard, type ActionArtwork } from "@/components/ActionCard";
 import { HoldersDonut } from "@/components/holders/HoldersDonut";
 import { HoldersProvider } from "@/components/holders/HoldersProvider";
 import { holdersData } from "@/components/holders/views";
-import { AddressLink, AsOf, External, Hash, StateLabel, VerdictLabel } from "@/components/ui";
+import { AsOf, External, Hash, StateLabel } from "@/components/ui";
 import { FundGovernor } from "@/generated/contracts";
 import { etherscanAddress, formatTimestamp, proposalTitle } from "@/lib/format";
 import { getSnapshot, ipfsGateway, type SnapshotProposal } from "@/lib/server/snapshot";
@@ -21,6 +22,21 @@ export default async function GovernancePage() {
   const snapshot = await getSnapshot();
   const holders = holdersData(snapshot);
   const slots = (snapshot.capTable?.holders ?? []).map((h) => ({ address: h.address, slot: h.slot }));
+  const gateway = ipfsGateway();
+  // The artwork a sell action moves, for its thumbnail; an id with no token still renders.
+  const artworkOf = (id: bigint): ActionArtwork => {
+    const t = snapshot.tokens.find((x) => x.id === id);
+    const art = t?.metadata.status === "ok" ? t.metadata.artwork : null;
+    return {
+      id,
+      name: art?.name ?? null,
+      src: art?.imageCid ? new URL(art.imageCid, gateway).href : null,
+      ratio: t?.image?.ratio ?? null,
+    };
+  };
+  const holderSlot = (address: `0x${string}`) =>
+    slots.find((x) => isAddressEqual(x.address as `0x${string}`, address))?.slot ?? null;
+  const treasury = { balance: snapshot.treasuryBalance, artworkOf, holderSlot };
   const body = (
     <>
       {holders && (
@@ -35,7 +51,7 @@ export default async function GovernancePage() {
       )}
       {snapshot.proposals.length === 0 && <p>No proposals yet.</p>}
       {snapshot.proposals.map((p) => (
-        <ProposalCard key={p.id.toString()} proposal={p} now={snapshot.blockTimestamp} slots={slots} />
+        <ProposalCard key={p.id.toString()} proposal={p} now={snapshot.blockTimestamp} slots={slots} treasury={treasury} />
       ))}
       <CapTable capTable={snapshot.capTable} />
     </>
@@ -51,7 +67,7 @@ export default async function GovernancePage() {
         <Link href="/contracts">the contracts</Link>.
       </p>
       <p className="small">
-        Each proposal is checked twice: by our server (verdicts under <em>Actions</em>) and again in your browser against
+        Each proposal is checked twice: by our server (under each action, in <em>Under the hood</em>) and again in your browser against
         the Governor, so you don&apos;t have to trust our server for what you see. One thing your browser can&apos;t
         check: this list comes from our server, which could leave a proposal out. It can&apos;t alter or invent one.
       </p>
@@ -91,7 +107,17 @@ function voteView(p: SnapshotProposal, slots: { address: string; slot: number }[
   };
 }
 
-function ProposalCard({ proposal: p, now, slots }: { proposal: SnapshotProposal; now: bigint; slots: { address: string; slot: number }[] }) {
+function ProposalCard({
+  proposal: p,
+  now,
+  slots,
+  treasury,
+}: {
+  proposal: SnapshotProposal;
+  now: bigint;
+  slots: { address: string; slot: number }[];
+  treasury: { balance: bigint; artworkOf: (id: bigint) => ActionArtwork; holderSlot: (address: `0x${string}`) => number | null };
+}) {
   return (
     <article className="card" id={p.id.toString()}>
       <header>
@@ -112,12 +138,24 @@ function ProposalCard({ proposal: p, now, slots }: { proposal: SnapshotProposal;
       <ProposalTimeline proposal={p} now={now} />
       <VotingWindow proposal={p} />
 
-      <h3>Actions (checked by our server)</h3>
-      <ol className="actions">
+      <h3>{p.actions.length === 1 ? "Action" : `Actions · ${p.actions.length}`}</h3>
+      {p.actions.length > 1 && (
+        <p className="muted small">They run in this order, in one transaction: if one fails, none of them happen.</p>
+      )}
+      <ol className={`actions${p.actions.length === 1 ? " single" : ""}`}>
         {p.actions.map((a, i) => (
           <li key={i}>
-            <VerdictLabel status={a.verification.status} />
-            <ActionDetail action={a} />
+            <ActionCard
+              action={a}
+              uid={`${p.id}-${i}`}
+              ctx={{
+                state: p.state,
+                executedTx: p.executed?.transactionHash ?? null,
+                treasuryBalance: treasury.balance,
+                artworkOf: treasury.artworkOf,
+                holderSlot: treasury.holderSlot,
+              }}
+            />
           </li>
         ))}
       </ol>
@@ -139,56 +177,3 @@ function ProposalCard({ proposal: p, now, slots }: { proposal: SnapshotProposal;
   );
 }
 
-function ActionDetail({ action: a }: { action: SnapshotProposal["actions"][number] }) {
-  const v = a.verification;
-  return (
-    <div className="action-detail">
-      {(v.status === "match" || v.status === "mismatch") && (
-        <>
-          <p>
-            <code>ArtRegistry.addGallery</code>: the tree published at <Hash>ipfs://{v.cid}</Hash>{" "}
-            {v.status === "match" ? "rebuilds to the root in the calldata." : "does NOT rebuild to the root in the calldata."}
-          </p>
-          <dl className="compact">
-            <dt>Root in calldata</dt>
-            <dd>
-              <Link href={`/acquisitions/${v.root}`}>
-                <Hash>{v.root}</Hash>
-              </Link>
-            </dd>
-            {v.status === "mismatch" && (
-              <>
-                <dt>Rebuilt root</dt>
-                <dd>
-                  <Hash>{v.computed}</Hash>
-                </dd>
-              </>
-            )}
-          </dl>
-        </>
-      )}
-      {v.status === "unverifiable" && (
-        <p>
-          <code>ArtRegistry.addGallery</code> with root <Hash>{v.root}</Hash>, but the tree can&apos;t be checked: {v.reason}.
-        </p>
-      )}
-      {v.status === "revokes-gallery" && (
-        <p>
-          <code>ArtRegistry.revokeGallery</code> disables gallery <Hash>{v.root}</Hash>. Minting from it stops.
-          {a.revertWarning && <strong> Warning: that gallery is not enabled right now, so execution would revert.</strong>}
-        </p>
-      )}
-      {v.status === "not-applicable" && (
-        <p>
-          Not a gallery action. Target <AddressLink address={a.target} />, selector <Hash>{a.calldata.slice(0, 10)}</Hash>
-          {a.value > 0n && <>, sends {formatEther(a.value)} ETH</>}. Review the calldata before voting.
-        </p>
-      )}
-      {v.status === "malformed" && (
-        <p>
-          Calls ArtRegistry with arguments that don&apos;t decode ({v.error}). Execution would most likely revert.
-        </p>
-      )}
-    </div>
-  );
-}
