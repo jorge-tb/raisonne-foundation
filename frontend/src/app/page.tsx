@@ -9,9 +9,33 @@ import { AsOf, Hash, StateLabel } from "@/components/ui";
 import { FundTreasury } from "@/generated/contracts";
 import { formatDuration, formatTimestamp, proposalTitle } from "@/lib/format";
 import { getSnapshot, ipfsGateway } from "@/lib/server/snapshot";
+import type { ProposalState } from "@/lib/states";
 
 // Height of the paintings in the collection door (desktop); widths follow each image's proportions.
 const STRIP_PX = 180;
+
+// Anyone can propose, so the title is free text: shown whole, never parsed for a structure. Only hex
+// identifiers (addresses, hashes) are set as hashes, wherever they appear, so their wrap looks intended.
+function ProposalHeadline({ title, state }: { title: string; state: ProposalState }) {
+  return (
+    <span className="door-proposal">
+      <StateLabel state={state} />
+      <span className="door-proposal-title">
+        {title.split(/(0x[0-9a-fA-F]{40,})/).map((part, i) =>
+          i % 2 ? (
+            // The "0x" stays with the first digits, so a wrap never leaves a lone "0" at a line's end.
+            <Hash key={i}>
+              <span className="nowrap">{part.slice(0, 6)}</span>
+              {part.slice(6)}
+            </Hash>
+          ) : (
+            part
+          ),
+        )}
+      </span>
+    </span>
+  );
+}
 
 export default async function Home() {
   const snapshot = await getSnapshot();
@@ -69,10 +93,7 @@ export default async function Home() {
           </span>
           {latest ? (
             <>
-              <span>
-                {/* "Acquisition 002 - corrects tokens …": the name before the dash is enough here. */}
-                <StateLabel state={latest.state} /> {proposalTitle(latest.description).split(/\s[-–—]\s/)[0]}
-              </span>
+              <ProposalHeadline title={proposalTitle(latest.description)} state={latest.state} />
               <span className="muted small">
                 {latest.state === "Active"
                   ? `Voting open until ${formatTimestamp(latest.voteEnd)}.`
