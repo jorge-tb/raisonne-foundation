@@ -2251,7 +2251,7 @@ a.door:hover .door-go,
   font-size: 0.85em;
 }
 
-.door-proposal .nowrap {
+.nowrap {
   white-space: nowrap;
 }
 

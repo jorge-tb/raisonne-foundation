@@ -5,7 +5,7 @@ import { ContractGlyph } from "@/components/ContractGlyph";
 import { HoldersEmblem } from "@/components/holders/HoldersEmblem";
 import { holdersData } from "@/components/holders/views";
 import { AcquisitionsIcon, GovernanceIcon } from "@/components/icons";
-import { AsOf, Hash, StateLabel } from "@/components/ui";
+import { AsOf, Hash, HexText, StateLabel } from "@/components/ui";
 import { FundTreasury } from "@/generated/contracts";
 import { chooseOrder, type WallWork } from "@/lib/collectionWall";
 import { formatDuration, formatTimestamp, proposalTitle } from "@/lib/format";
@@ -13,24 +13,13 @@ import { attribute } from "@/lib/metadata";
 import { getSnapshot, ipfsGateway } from "@/lib/server/snapshot";
 import type { ProposalState } from "@/lib/states";
 
-// Anyone can propose, so the title is free text: shown whole, never parsed for a structure. Only hex
-// identifiers (addresses, hashes) are set as hashes, wherever they appear, so their wrap looks intended.
+// Anyone can propose, so the title is free text: shown whole (see HexText).
 function ProposalHeadline({ title, state }: { title: string; state: ProposalState }) {
   return (
     <span className="door-proposal">
       <StateLabel state={state} />
       <span className="door-proposal-title">
-        {title.split(/(0x[0-9a-fA-F]{40,})/).map((part, i) =>
-          i % 2 ? (
-            // The "0x" stays with the first digits, so a wrap never leaves a lone "0" at a line's end.
-            <Hash key={i}>
-              <span className="nowrap">{part.slice(0, 6)}</span>
-              {part.slice(6)}
-            </Hash>
-          ) : (
-            part
-          ),
-        )}
+        <HexText text={title} />
       </span>
     </span>
   );
