@@ -8,7 +8,7 @@ import { getContractsState } from "../contracts";
 import { createClient, DEPLOYMENT_BLOCK, LOG_EMITTERS, scanLogs } from "../chain";
 import { discoverLogBlocks } from "../discovery";
 import { getGalleries } from "../galleries";
-import { DEFAULT_IPFS_GATEWAY } from "../gallery";
+import { DEFAULT_IPFS_GATEWAY, fetchGallery, parseTreeCids } from "../gallery";
 import { fetchMetadata, REISSUED_AS, type MetadataFetch } from "../metadata";
 import { getProposals, type ProposalState } from "../proposals";
 import { verifyAction } from "../verify";
@@ -16,6 +16,7 @@ import { getVotes } from "../votes";
 import { analyseImage } from "./image";
 
 const FINAL_STATES: ProposalState[] = ["Defeated", "Canceled", "Executed", "Expired"];
+const OPEN_STATES: ProposalState[] = ["Pending", "Active", "Succeeded", "Queued"];
 
 export const ipfsGateway = () => process.env.IPFS_GATEWAY || DEFAULT_IPFS_GATEWAY;
 
@@ -124,6 +125,12 @@ async function load() {
     metadata,
     image: metadata.status === "ok" && metadata.artwork.imageCid ? await getImageInfo(metadata.artwork.imageCid, ipfsGateway()) : null,
   });
+  // Reissued tokens were reissued because their metadata was never pinned. Failures aren't cached,
+  // so asking would cost a gateway request on every regeneration.
+  const artworkOf = async (tokenId: bigint, cid: string) =>
+    tokenId.toString() in REISSUED_AS
+      ? { metadata: { status: "unpinned" } as MetadataFetch, image: null }
+      : await withImage(await getMetadata(cid, ipfsGateway()));
   const tokens = await Promise.all(
     galleries.flatMap((g) =>
       g.minted.map(async (m) => ({
@@ -132,13 +139,67 @@ async function load() {
         cid: m.cid,
         mintTransactionHash: m.transactionHash,
         owner: await client.readContract({ ...ArtRegistry, functionName: "ownerOf", args: [m.tokenId], blockNumber: head.number }),
-        // Reissued tokens were reissued because their metadata was never pinned. Failures aren't cached,
-        // so asking would cost a gateway request on every regeneration.
-        ...(m.tokenId.toString() in REISSUED_AS
-          ? { metadata: { status: "unpinned" } as MetadataFetch, image: null }
-          : await withImage(await getMetadata(m.cid, ipfsGateway()))),
+        ...(await artworkOf(m.tokenId, m.cid)),
       })),
     ),
+  );
+
+  // Every work in a tree, minted or not, in the curator's order. null when the tree file can't be read
+  // (no single CID in the description, gateway down, malformed): the page then shows the minted works.
+  const treeWorks = async (cid: string | null, minted: Set<bigint>) => {
+    if (!cid) return null;
+    const tree = await fetchGallery(cid, ipfsGateway());
+    if (!tree.ok) return null;
+    return Promise.all(
+      tree.leaves.map(async (leaf) => ({ tokenId: leaf.tokenId, minted: minted.has(leaf.tokenId), ...(await artworkOf(leaf.tokenId, leaf.cid)) })),
+    );
+  };
+  const addedAt = new Map(
+    await Promise.all(
+      [...new Set(galleries.map((g) => g.added.blockNumber))].map(async (b) => [b, (await client.getBlock({ blockNumber: b })).timestamp] as const),
+    ),
+  );
+  const verdictOf = (proposalId: bigint | null, root: Hex) =>
+    verified
+      .find((p) => p.id === proposalId)
+      ?.actions.find((a) => a.kind.kind === "add-gallery" && a.kind.root === root)?.verification.status ?? "unverifiable";
+
+  // The Acquisitions page: each root on chain, plus each open proposal that would add one.
+  const acquired = await Promise.all(
+    galleries.map(async (g) => {
+      const minted = new Set(g.minted.map((m) => m.tokenId));
+      return {
+        root: g.root,
+        proposalId: g.sourceProposalId,
+        addedAt: addedAt.get(g.added.blockNumber)!,
+        enabled: g.enabled,
+        verdict: verdictOf(g.sourceProposalId, g.root),
+        works:
+          (await treeWorks(g.cid, minted)) ??
+          tokens.filter((t) => t.galleryRoot === g.root).map((t) => ({ tokenId: t.id, minted: true, metadata: t.metadata, image: t.image })),
+        complete: g.cid !== null,
+      };
+    }),
+  );
+  const onChain = new Set(galleries.filter((g) => g.enabled).map((g) => g.root.toLowerCase()));
+  const proposed = await Promise.all(
+    verified
+      .filter((p) => OPEN_STATES.includes(p.state))
+      .flatMap((p) =>
+        p.actions.flatMap((a) => (a.kind.kind === "add-gallery" && !onChain.has(a.kind.root.toLowerCase()) ? [{ p, root: a.kind.root }] : [])),
+      )
+      .map(async ({ p, root }) => {
+        const cids = parseTreeCids(p.description);
+        return {
+          root,
+          proposalId: p.id,
+          state: p.state,
+          voteStart: p.voteStart,
+          voteEnd: p.voteEnd,
+          verdict: verdictOf(p.id, root),
+          works: (await treeWorks(cids.length === 1 ? cids[0] : null, new Set())) ?? [],
+        };
+      }),
   );
 
   return {
@@ -149,6 +210,7 @@ async function load() {
     capTable,
     contracts,
     galleries,
+    acquisitions: { acquired, proposed },
     tokens: tokens.sort((a, b) => (a.id < b.id ? -1 : 1)),
     treasuryBalance,
   };
