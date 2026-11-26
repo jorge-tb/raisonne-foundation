@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Hanken_Grotesk, JetBrains_Mono, Newsreader } from "next/font/google";
 import Link from "next/link";
+import { Suspense } from "react";
 import { SiteNav, type NavStatus } from "@/components/SiteNav";
 import { Wordmark } from "@/components/Wordmark";
 import { getSnapshot } from "@/lib/server/snapshot";
@@ -29,8 +30,13 @@ async function navStatus(): Promise<NavStatus> {
   }
 }
 
-export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const status = await navStatus();
+async function NavWithStatus() {
+  return <SiteNav status={await navStatus()} />;
+}
+
+// The layout never waits for the chain: the navigation renders at once and its "vote open" badge streams
+// in. Awaiting the snapshot here blocked every route's prerender whenever the cache was being refilled.
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${ui.variable} ${title.variable} ${mono.variable}`}>
       <body>
@@ -47,7 +53,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <Link href="/" className="brand">
               <Wordmark />
             </Link>
-            <SiteNav status={status} />
+            <Suspense fallback={<SiteNav status={null} />}>
+              <NavWithStatus />
+            </Suspense>
           </div>
         </header>
         <main>{children}</main>
