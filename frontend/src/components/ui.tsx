@@ -8,26 +8,27 @@ export function Hash({ children }: { children: ReactNode }) {
   return <code className="hash">{children}</code>;
 }
 
+// A full identifier (hash, address, CID) that wraps only between equal chunks: an address in halves,
+// a longer hash or a CID in thirds. So a wrap looks intended and never strands a character.
+export function Id({ value }: { value: string }) {
+  const n = value.length <= 42 ? 2 : 3;
+  const size = Math.ceil(value.length / n);
+  return (
+    <Hash>
+      {Array.from({ length: n }, (_, k) => (
+        <Fragment key={k}>
+          {k > 0 && <wbr />}
+          <span className="nowrap">{value.slice(k * size, (k + 1) * size)}</span>
+        </Fragment>
+      ))}
+    </Hash>
+  );
+}
+
 // Free text (a proposal title) shown whole, never parsed for a structure. Only hex identifiers
-// (addresses, hashes) are set as hashes, wherever they appear. Each wraps only between equal chunks
-// (an address in halves, a longer hash in thirds), so a wrap looks intended and never strands a digit.
+// (addresses, hashes) are set as identifiers, wherever they appear.
 export function HexText({ text }: { text: string }) {
-  return text.split(/(0x[0-9a-fA-F]{40,})/).map((part, i) => {
-    if (i % 2 === 0) return part;
-    const n = part.length <= 42 ? 2 : 3;
-    const size = Math.ceil(part.length / n);
-    const chunks = Array.from({ length: n }, (_, k) => part.slice(k * size, (k + 1) * size));
-    return (
-      <Hash key={i}>
-        {chunks.map((c, k) => (
-          <Fragment key={k}>
-            {k > 0 && <wbr />}
-            <span className="nowrap">{c}</span>
-          </Fragment>
-        ))}
-      </Hash>
-    );
-  });
+  return text.split(/(0x[0-9a-fA-F]{40,})/).map((part, i) => (i % 2 ? <Id key={i} value={part} /> : part));
 }
 
 export function External({ href, children }: { href: string; children: ReactNode }) {
