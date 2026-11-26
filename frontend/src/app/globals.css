@@ -3356,3 +3356,433 @@ dl.params dd {
     display: none;
   }
 }
+
+/* ---- Acquisitions: the ledger (components/AcquisitionLedger.tsx) ----
+   One section per year, a spine through it with a node per acquisition coloured by status, each
+   acquisition's works hung in one row. Container queries, so the ledger lays itself out by its width. */
+.ledger-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1.4rem;
+  margin: 1rem 0 0;
+}
+
+.ledger-totals div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.ledger-totals dt {
+  order: 2;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.ledger-totals dd {
+  margin: 0;
+  font-weight: 800;
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger {
+  container-type: inline-size;
+  display: grid;
+  margin: 1rem 0 2.5rem;
+}
+
+.ledger-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.ledger-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ledger-filters button {
+  font: 600 0.82rem var(--ui);
+  color: var(--foreground);
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 0.2rem 0.7rem;
+  cursor: pointer;
+}
+
+.ledger-filters button span {
+  margin-left: 0.3rem;
+  font-weight: 500;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-filters button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.ledger-filters button[aria-pressed="true"] span {
+  color: inherit;
+}
+
+.ledger-years {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.ledger-years button {
+  font: 0.85rem var(--ui);
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  padding: 0;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-years button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.ledger-year {
+  scroll-margin-top: 1rem;
+}
+
+.ledger-year-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.75rem;
+  padding: 0.9rem 0 0.6rem;
+  border-bottom: 2px solid var(--foreground);
+}
+
+.ledger-year-head h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-sum {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.ledger-fold {
+  margin-left: auto;
+  font: 600 0.8rem var(--ui);
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.1rem 0.75rem;
+  cursor: pointer;
+}
+
+.ledger-fold:hover {
+  border-color: var(--accent);
+}
+
+.ledger-entry {
+  display: grid;
+  grid-template-columns: 4.2rem 14px minmax(0, 1fr);
+  gap: 0 0.9rem;
+}
+
+.ledger-date {
+  padding-top: 1rem;
+  text-align: right;
+  font-size: 0.82rem;
+  line-height: 1.3;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-date b {
+  display: block;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--foreground);
+}
+
+/* The spine: one line through the year; the node is filled for an enabled root, an open ring for a
+   revoked one, yellow while the acquisition is still a proposal. */
+.ledger-spine {
+  position: relative;
+}
+
+.ledger-spine::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--rule);
+}
+
+.ledger-spine::after {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 1.35rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--background);
+}
+
+.is-revoked .ledger-spine::after {
+  width: 8px;
+  height: 8px;
+  background: var(--background);
+  border: 2px solid var(--muted);
+}
+
+.is-proposed .ledger-spine::after {
+  background: var(--yellow);
+}
+
+.ledger-body {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.95rem 0 1.05rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Title and status side by side; a long title wraps beside the status, which never moves. */
+.ledger-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+}
+
+.ledger-title {
+  min-width: 0;
+  font-family: var(--title);
+  font-style: italic;
+  font-size: 1.15rem;
+  line-height: 1.25;
+  color: var(--foreground);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.ledger-title:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+}
+
+.ledger-title .hash {
+  font-style: normal;
+  font-size: 0.8em;
+}
+
+.ledger-status {
+  display: inline-flex;
+  white-space: nowrap;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ledger-status::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.st-enabled {
+  color: var(--accent);
+}
+
+.st-revoked {
+  color: var(--muted);
+}
+
+.st-revoked::before {
+  width: 5px;
+  height: 5px;
+  background: transparent;
+  border: 1.5px solid currentColor;
+}
+
+/* The one status with a sentence in it: it may wrap on the narrowest phones. */
+.st-proposed {
+  white-space: normal;
+  color: var(--on-yellow);
+  background: var(--yellow);
+  border-radius: 0.75rem;
+  padding: 0.05rem 0.55rem 0.05rem 0.45rem;
+}
+
+/* The works: one row of one height, whole works only; the rest wrap out of view. */
+.ledger-hang {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  height: 64px;
+  max-width: 36rem;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.ledger-work {
+  position: relative;
+  flex: none;
+  height: 100%;
+  background: var(--panel);
+}
+
+.ledger-work img {
+  object-fit: cover; /* the box already has the painting's proportions: nothing is cut */
+}
+
+.is-revoked .ledger-hang {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.ledger-missing {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 0 2px;
+  font: 600 0.66rem/1.2 var(--mono);
+  text-align: center;
+  color: var(--muted);
+}
+
+.ledger-more {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  z-index: 1;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(16, 19, 42, 0.72);
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 1rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.ledger-fulldate {
+  display: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-mint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-ticks {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.ledger-ticks i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.ledger-ticks i.off {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--muted) 45%, transparent);
+}
+
+.is-revoked .ledger-ticks i {
+  background: color-mix(in srgb, var(--muted) 45%, transparent);
+}
+
+.is-revoked .ledger-ticks i.off {
+  background: transparent;
+}
+
+.ledger-meter {
+  width: 64px;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--muted) 30%, transparent);
+  overflow: hidden;
+}
+
+.ledger-meter i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.ledger-check {
+  white-space: nowrap;
+}
+
+.ledger-check b {
+  color: var(--accent);
+}
+
+.ledger-check.is-mismatch b {
+  color: var(--vote-against);
+}
+
+/* Phones: the date moves into the footer, the status under the title. */
+@container (width < 520px) {
+  .ledger-entry {
+    grid-template-columns: 14px minmax(0, 1fr);
+    gap: 0 0.75rem;
+  }
+
+  .ledger-date {
+    display: none;
+  }
+
+  .ledger-fulldate {
+    display: inline;
+  }
+
+  .ledger-top {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+
+  .ledger-hang {
+    height: 56px;
+  }
+}

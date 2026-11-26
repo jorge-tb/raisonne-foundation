@@ -1,55 +1,96 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { AsOf, Hash } from "@/components/ui";
-import { proposalTitle } from "@/lib/format";
-import { getSnapshot } from "@/lib/server/snapshot";
+import { AcquisitionLedger, type LedgerEntry, type LedgerWork } from "@/components/AcquisitionLedger";
+import { AsOf } from "@/components/ui";
+import { formatTimestamp, proposalTitle } from "@/lib/format";
+import { getSnapshot, ipfsGateway, type Snapshot } from "@/lib/server/snapshot";
 
 export const metadata: Metadata = { title: "Acquisitions" };
 
+type TreeWork = Snapshot["acquisitions"]["acquired"][number]["works"][number];
+
 export default async function AcquisitionsPage() {
   const snapshot = await getSnapshot();
+  const { acquired, proposed } = snapshot.acquisitions;
+  const gateway = ipfsGateway();
   const titleOf = (id: bigint | null) => {
     const p = snapshot.proposals.find((x) => x.id === id);
-    return p ? proposalTitle(p.description) : null;
+    return p ? proposalTitle(p.description) : "Acquisition";
   };
+  // A work without a readable image keeps its place in the row as its token number.
+  const work = (w: TreeWork): LedgerWork => {
+    const art = w.metadata.status === "ok" ? w.metadata.artwork : null;
+    return {
+      tokenId: w.tokenId.toString(),
+      name: art?.name ?? null,
+      src: art?.imageCid && w.image ? new URL(art.imageCid, gateway).href : null,
+      ratio: w.image?.ratio ?? 0.8,
+      minted: w.minted,
+    };
+  };
+
+  const entries: LedgerEntry[] = [
+    ...proposed.map((p) => ({
+      key: `${p.proposalId}-${p.root}`,
+      href: `/governance#${p.proposalId}`,
+      title: titleOf(p.proposalId),
+      status: "proposed" as const,
+      note:
+        p.state === "Pending"
+          ? `Vote opens ${formatTimestamp(p.voteStart)}`
+          : p.state === "Active"
+            ? `In vote · ends ${formatTimestamp(p.voteEnd)}`
+            : p.state === "Succeeded"
+              ? "Passed · to be queued"
+              : "Queued · to be executed",
+      at: Number(p.voteStart),
+      verdict: p.verdict === "match" || p.verdict === "mismatch" ? p.verdict : ("unverifiable" as const),
+      works: p.works.map(work),
+    })),
+    ...acquired
+      .map((g) => ({
+        key: g.root,
+        href: `/acquisitions/${g.root}`,
+        title: titleOf(g.proposalId),
+        status: g.enabled ? ("enabled" as const) : ("revoked" as const),
+        at: Number(g.addedAt),
+        verdict: g.verdict === "match" || g.verdict === "mismatch" ? g.verdict : ("unverifiable" as const),
+        works: g.works.map(work),
+      }))
+      .sort((a, b) => b.at - a.at), // newest first
+  ];
+
+  const committed = acquired.reduce((t, g) => t + g.works.length, 0);
+  const minted = acquired.reduce((t, g) => t + g.works.filter((w) => w.minted).length, 0);
 
   return (
     <>
       <h1>Acquisitions</h1>
       <p className="lede">
-        Each acquisition the shareholders approve adds a gallery to the ArtRegistry contract: a Merkle root of the
-        artworks it brings in. Artworks are minted from it by proving membership in the tree. Open one to rebuild its tree
-        in your browser and inspect every proof.
+        Each acquisition the shareholders approve commits a Merkle root of its works on chain; works are minted from it
+        with a proof. Open one to rebuild its tree in your browser.
       </p>
       <AsOf snapshot={snapshot} />
-      {snapshot.galleries.length === 0 && <p>No acquisitions yet.</p>}
-      {snapshot.galleries.map((g) => (
-        <article className="card" key={g.root}>
-          <header>
-            <span className="state">{g.enabled ? "● Enabled" : "⊘ Revoked"}</span>
-            <h2>
-              <Link href={`/acquisitions/${g.root}`}>{titleOf(g.sourceProposalId) ?? "Acquisition"}</Link>
-            </h2>
-          </header>
-          <dl className="compact">
-            <dt>Root</dt>
-            <dd>
-              <Hash>{g.root}</Hash>
-            </dd>
-            <dt>Tree</dt>
-            <dd>{g.cid ? <Hash>ipfs://{g.cid}</Hash> : <span>no single CID in the proposal description</span>}</dd>
-            <dt>Minted</dt>
-            <dd>
-              {g.minted.length === 0 ? "none" : g.minted.map((m) => `#${m.tokenId}`).join(", ")}
-            </dd>
-            <dt>Proposals</dt>
-            <dd>
-              {g.proposalIds.length} adding this root
-              {g.proposalIds.length > 1 && " (same calldata proposed more than once)"}
-            </dd>
+      {entries.length === 0 ? (
+        <p>No acquisitions yet.</p>
+      ) : (
+        <>
+          <dl className="ledger-totals">
+            <div>
+              <dd>{acquired.length}</dd>
+              <dt>{acquired.length === 1 ? "acquisition" : "acquisitions"}</dt>
+            </div>
+            <div>
+              <dd>{committed}</dd>
+              <dt>works committed</dt>
+            </div>
+            <div>
+              <dd>{minted}</dd>
+              <dt>minted</dt>
+            </div>
           </dl>
-        </article>
-      ))}
+          <AcquisitionLedger entries={entries} />
+        </>
+      )}
     </>
   );
 }
