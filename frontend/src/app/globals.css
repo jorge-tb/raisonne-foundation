@@ -1194,18 +1194,8 @@ ol.actions.single {
   }
 }
 
-ol.proof {
-  padding-left: 1.5rem;
-  margin: 0;
-}
-
 .description {
   white-space: pre-wrap;
-}
-
-details.leaf {
-  border-top: 1px solid var(--rule);
-  padding: 0.5rem 0;
 }
 
 details summary {
@@ -3784,5 +3774,510 @@ dl.params dd {
 
   .ledger-hang {
     height: 56px;
+  }
+}
+
+/* ---- An acquisition's proof page (app/acquisitions/[root]) ----
+   A technical page, laid out as one: the outcome as a ring (works proven), the four browser checks as
+   cards, then every work with its proof folded inside; provenance and the record below. Container
+   queries, so it lays itself out by its own width. */
+.acq-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1.1rem;
+  margin: 0 0 0.25rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.acq-proof {
+  container-type: inline-size;
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.acq-proof > * {
+  min-width: 0;
+}
+
+.acq-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1.2rem 1.6rem;
+  padding: 1.2rem 1.3rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+.acq-ring {
+  position: relative;
+  width: 132px;
+  height: 132px;
+}
+
+.acq-ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.acq-ring-bg,
+.acq-ring-fg {
+  fill: none;
+  stroke-width: 12;
+}
+
+.acq-ring-bg {
+  stroke: var(--panel);
+}
+
+.acq-ring-fg {
+  stroke: var(--accent);
+  transition: stroke-dashoffset 1.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.acq-ring-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+
+.acq-ring-label b {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.acq-ring-label span {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.acq-hero-text {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.acq-hero-text h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.acq-hero-text p {
+  margin: 0;
+}
+
+.acq-via {
+  font-size: 0.8rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.acq-again {
+  justify-self: start;
+  font: 600 0.8rem var(--ui);
+  color: var(--accent);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.2rem 0.8rem;
+}
+
+.acq-again:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.acq-again:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Four checks; each mark fills as its answer arrives. */
+.acq-checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+  gap: 0.8rem;
+}
+
+.acq-check {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  align-content: start;
+  gap: 0.15rem 0.75rem;
+  padding: 0.85rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+.acq-check-mark {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  font-weight: 800;
+  color: var(--muted);
+  background: var(--panel);
+  transition: background-color 0.3s, color 0.3s;
+  transition-delay: inherit;
+}
+
+.acq-check b {
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.acq-check > span:last-child {
+  font-size: 0.78rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.acq-check.is-ok .acq-check-mark {
+  color: #fff;
+  background: var(--accent);
+}
+
+.acq-check.is-bad .acq-check-mark {
+  color: #fff;
+  background: var(--vote-against);
+}
+
+.acq-check.is-run .acq-check-mark::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: acq-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes acq-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.acq-kicker {
+  margin: 0.8rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Every work: a row that opens to its proof. */
+.acq-works {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 2px solid var(--foreground);
+}
+
+.acq-works > li {
+  border-bottom: 1px solid var(--rule);
+}
+
+.acq-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.55rem 0.2rem;
+  border: 0;
+  text-align: left;
+}
+
+.acq-row:hover,
+.acq-row[aria-expanded="true"] {
+  background: var(--accent-soft);
+}
+
+.acq-thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  font: 600 0.65rem var(--mono);
+  color: var(--muted);
+  background: var(--panel);
+}
+
+.acq-thumb img {
+  object-fit: cover;
+}
+
+.acq-row-text {
+  display: grid;
+  min-width: 0;
+}
+
+.acq-row-title {
+  font-family: var(--title);
+  font-style: italic;
+  font-size: 1rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.acq-row-sub {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.acq-chip {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--accent);
+}
+
+.acq-chip.is-bad {
+  color: var(--vote-against);
+}
+
+.acq-row-body {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.6rem 0.2rem 1rem 3.6rem;
+}
+
+.acq-row-links {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.acq-row-links:empty {
+  display: none;
+}
+
+/* A proof, read top to bottom: the work's entry, one sibling per level (yellow), the root. */
+.acq-path {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.acq-path li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr);
+  gap: 0 0.75rem;
+  padding-bottom: 0.7rem;
+}
+
+.acq-path li > * {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.acq-path li::before {
+  content: "";
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  z-index: 1;
+  width: 10px;
+  height: 10px;
+  margin-top: 0.3rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--background);
+}
+
+.acq-path li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 0.6rem;
+  bottom: -0.2rem;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0.35;
+}
+
+.acq-path li.is-sibling::before {
+  border-radius: 2px;
+  background: var(--yellow);
+}
+
+.acq-path li.is-zero::before {
+  width: 6px;
+  height: 6px;
+  background: transparent;
+  border: 2px dashed var(--muted);
+}
+
+.acq-path li.is-root::before {
+  width: 14px;
+  height: 14px;
+  margin: 0.2rem 0 0 -2px;
+}
+
+.acq-path-k {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.acq-path li.is-root .acq-path-k {
+  color: var(--accent);
+}
+
+.acq-path .hash {
+  font-size: 0.78rem;
+}
+
+.acq-path-ok,
+.acq-path-bad {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.acq-path-bad {
+  color: var(--vote-against);
+}
+
+.acq-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.acq-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.acq-legend i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.acq-legend i.y {
+  border-radius: 2px;
+  background: var(--yellow);
+}
+
+details.acq-more > summary {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+details.acq-more[open] > summary {
+  margin-bottom: 0.5rem;
+}
+
+/* Provenance and the record, side by side when there is room. */
+.acq-below {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.5rem 2.5rem;
+  align-items: start;
+}
+
+.acq-below > * {
+  min-width: 0;
+}
+
+.acq-decided {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.acq-record {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.5rem 1rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.acq-record dt {
+  align-self: start;
+  padding-top: 0.1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.acq-record dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.acq-unverifiable {
+  margin: 1.5rem 0;
+}
+
+@container (width < 560px) {
+  .acq-hero {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+
+  .acq-ring {
+    width: 112px;
+    height: 112px;
+  }
+
+  .acq-row-body {
+    padding-left: 0.2rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .acq-below {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .acq-record {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.1rem;
+  }
+
+  .acq-record dd {
+    margin-bottom: 0.45rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acq-ring-fg,
+  .acq-check-mark {
+    transition: none;
+  }
+
+  .acq-check.is-run .acq-check-mark::after {
+    animation: none;
   }
 }
