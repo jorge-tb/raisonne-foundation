@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { formatEther, isAddressEqual } from "viem";
-import { CapTable } from "@/components/CapTable";
 import { GovernanceNav } from "@/components/GovernanceNav";
 import { HolderChip } from "@/components/holders/HolderChip";
 import { ProposalTimeline } from "@/components/ProposalTimeline";
@@ -45,6 +44,13 @@ export default async function GovernancePage() {
           <p className="muted small">
             Shares vote once delegated. The ring shows each shareholder&apos;s votes as a share of all shares, and the
             quorum a proposal needs.
+            {snapshot.capTable && (
+              <>
+                {" "}
+                Shares are FundShare tokens (FS), one for each ETH subscribed: {formatEther(snapshot.capTable.supply)} FS
+                in all, replayed from FundShare transfers and checked against <code>totalSupply()</code>.
+              </>
+            )}
           </p>
           <HoldersDonut />
         </section>
@@ -53,7 +59,6 @@ export default async function GovernancePage() {
       {snapshot.proposals.map((p) => (
         <ProposalCard key={p.id.toString()} proposal={p} now={snapshot.blockTimestamp} slots={slots} treasury={treasury} />
       ))}
-      <CapTable capTable={snapshot.capTable} />
     </>
   );
   return (
