@@ -10,6 +10,7 @@ import { decodeCall, type ContractName } from "@/lib/actions";
 import { etherscanAddress, etherscanCode, etherscanTxLogs } from "@/lib/format";
 import type { SnapshotProposal } from "@/lib/server/snapshot";
 import type { ProposalState } from "@/lib/states";
+import { BrowserConfirm } from "./BrowserConfirm";
 import { CopyButton } from "./CopyButton";
 
 // One proposal action as a layered card: what it does (category, sentence, flow), what needs a second
@@ -28,7 +29,8 @@ export type ActionContext = {
 type Action = SnapshotProposal["actions"][number];
 type Category = "treasury" | "collection" | "protocol" | "unknown" | "malformed";
 type Flag = { level: "review" | "fail"; title: string; text: ReactNode; link?: { href: string; label: string } };
-type Check = { status: "pass" | "fail" | "info"; text: ReactNode };
+// `browser`: the visitor's browser re-runs this check (the Governance page's band) and confirms it here.
+type Check = { status: "pass" | "fail" | "info"; text: ReactNode; browser?: true };
 type End = { icon: ReactNode; name: string; id?: string; note?: string; tone?: "fund" | "receiver" | "ink" | "neutral" | "unknown" };
 
 const CATEGORY_LABEL: Record<Category, string> = {
@@ -49,9 +51,9 @@ function tense(state: ProposalState) {
     case "Queued":
       return { i: 1, mode: "live", note: "once executed" } as const;
     case "Executed":
-      return { i: 2, mode: "done", note: "executed" } as const;
+      return { i: 2, mode: "done", note: null } as const;
     default:
-      return { i: 3, mode: "off", note: `the proposal was ${state.toLowerCase()}` } as const;
+      return { i: 3, mode: "off", note: null } as const;
   }
 }
 
@@ -68,7 +70,7 @@ export function ActionCard({ action: a, ctx, uid }: { action: Action; ctx: Actio
     <article className={`ac ac-${t.mode} ac-cat-${m.category}`}>
       <header className="ac-top">
         <span className={`ac-cat ${m.category}`}>{CATEGORY_LABEL[m.category]}</span>
-        <span className="ac-when">{t.note}</span>
+        {t.note && <span className="ac-when">{t.note}</span>}
       </header>
 
       <p className="ac-sentence">{m.sentence(verb)}</p>
@@ -139,7 +141,10 @@ export function ActionCard({ action: a, ctx, uid }: { action: Action; ctx: Actio
                 {m.checks.map((c, i) => (
                   <li key={i} className={c.status}>
                     <span aria-hidden="true">{c.status === "pass" ? "✓" : c.status === "fail" ? "✕" : "i"}</span>
-                    <span>{c.text}</span>
+                    <span>
+                      {c.text}
+                      {c.browser && <BrowserConfirm uid={uid} />}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -272,10 +277,10 @@ function describe(a: Action, ctx: ActionContext, mode: "live" | "done" | "off"):
       const flags: Flag[] = [];
       const checks: Check[] = [decodedWith("ArtRegistry")];
       if (v.status === "match")
-        checks.push({ status: "pass", text: <>The tree at <Id value={`ipfs://${v.cid}`} /> rebuilds to the root in the calldata</> });
+        checks.push({ status: "pass", text: <>The tree at <Id value={`ipfs://${v.cid}`} /> rebuilds to the root in the calldata</>, browser: true });
       if (v.status === "mismatch") {
         flags.push({ level: "fail", title: "Doesn't match its tree", text: <>The tree published at <Id value={`ipfs://${v.cid}`} /> rebuilds to <Id value={v.computed} />, not to the root voted on.</> });
-        checks.push({ status: "fail", text: "The published tree rebuilds to a different root" });
+        checks.push({ status: "fail", text: "The published tree rebuilds to a different root", browser: true });
       }
       if (v.status === "unverifiable")
         flags.push({ level: "review", title: "The tree can't be checked", text: `${v.reason}. Rebuild it yourself before voting.` });

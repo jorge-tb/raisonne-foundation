@@ -24,7 +24,8 @@ const SHOWN = 6;
 // Shares are floored so they never overstate; the quorum is a rule, so it is rounded.
 const floorPct = (x: number, of: number) => `${(Math.floor((x / of) * 1000 + 1e-9) / 10).toFixed(1)}%`;
 const rulePct = (x: number, of: number) => `${(Math.round((x / of) * 1000) / 10).toFixed(1).replace(/\.0$/, "")}%`;
-const eth = (x: number) => `${Number(x.toFixed(6))} ETH`;
+// Voting weight is in FundShare tokens (FS), not ether: one FS was minted for each ETH subscribed.
+const fs = (x: number) => `${Number(x.toFixed(6))} FS`;
 
 // How a proposal was voted: a bar of all shares by choice (For, Against, Abstain, didn't vote) with the
 // quorum marked, then who voted, on demand. The bar is drawn full (complete at rest); a card that starts
@@ -186,7 +187,7 @@ export function ProposalVote({ vote }: { vote: VoteView }) {
                     r.power === null ? null : <small>{floorPct(r.power, supply)} of the votes at the snapshot</small>
                   ) : (
                     <>
-                      {eth(r.weight)}
+                      {fs(r.weight)}
                       <small>{floorPct(r.weight, supply)} of shares</small>
                     </>
                   )}

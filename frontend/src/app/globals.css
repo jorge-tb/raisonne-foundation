@@ -163,12 +163,16 @@ main {
   border-bottom-color: var(--accent);
 }
 
+/* An open vote, as on the ledger: the yellow pill. */
 .vote-open {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 0 0.35rem;
-  background: var(--accent);
-  color: var(--surface);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: var(--on-yellow);
 }
 
 /* The environment strip above the header: network and read-only. Neutral, so the yellow stays the brand's. */
@@ -285,7 +289,8 @@ main {
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 50%;
-    background: var(--foreground);
+    background: var(--yellow);
+    box-shadow: 0 0 0 1.5px var(--on-yellow);
   }
 
   /* Room for the bar, so the footer isn't hidden under it. */
@@ -448,34 +453,83 @@ ul.plain {
   padding: 1rem 0 1.5rem;
 }
 
-.card header h2 {
-  margin: 0.25rem 0 0.5rem;
+/* A proposal's title, with its state on the right: a long title wraps beside the state, which never moves. */
+.proposal-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.25rem 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.proposal-head h2 {
+  margin: 0;
   /* Titles are free text: a full address in one must wrap, not run off a phone screen. */
   overflow-wrap: anywhere;
 }
 
+@media (max-width: 480px) {
+  .proposal-head {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+}
+
+/* A proposal's state, in the site's status language (the ledger's .ledger-status): a filled accent dot
+   when done, an accent ring on its way, a grey ring when it ended without effect, a yellow pill while the
+   vote is open and a yellow ring just before. */
 .state {
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
-/* Typographic weight, not colour: final outcomes heavier, open states lighter. */
-.state-pending,
-.state-succeeded,
-.state-queued {
-  font-weight: 500;
+.state::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
-.state-active {
-  text-decoration: underline;
+.state-done,
+.state-going {
+  color: var(--accent);
 }
 
-.state-defeated,
-.state-canceled,
-.state-expired {
+.state-going::before,
+.state-ended::before,
+.state-soon::before {
+  width: 5px;
+  height: 5px;
+  background: transparent;
+  border: 1.5px solid currentColor;
+}
+
+.state-ended {
   color: var(--muted);
+}
+
+.state-soon {
+  color: var(--foreground);
+}
+
+.state-soon::before {
+  border-color: var(--yellow);
+}
+
+.state-open {
+  padding: 0.08rem 0.55rem 0.08rem 0.45rem;
+  border-radius: 999px;
+  color: var(--on-yellow);
+  background: var(--yellow);
 }
 
 .verdict-mismatch,
@@ -1194,27 +1248,14 @@ ol.actions.single {
   }
 }
 
+/* A proposal's full description is free text: an address or a CID in it must wrap, not widen the page. */
 .description {
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 details summary {
   cursor: pointer;
-}
-
-.browser-check {
-  border-left: 3px solid var(--foreground);
-  padding: 0.25rem 0 0.25rem 1rem;
-  margin: 1rem 0;
-}
-
-.browser-check h2,
-.browser-check h3:first-child {
-  margin-top: 0;
-}
-
-ul.checks li {
-  margin-bottom: 0.4rem;
 }
 
 button {
@@ -4339,4 +4380,207 @@ details.acq-more[open] > summary {
   margin: 0;
   padding: 0;
   border: 0;
+}
+
+/* ---- Governance: the browser check, once for the page (app/governance/GovernanceCheck.tsx) ----
+   The outcome, the RPC and Re-check said once; each proposal's lines in Details, which open by themselves
+   when something doesn't match. Red only for a contradiction; grey for "unable to verify". */
+.gov-check {
+  container-type: inline-size;
+  display: grid;
+  gap: 0.6rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.gov-check-band {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.5rem 1rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--accent);
+}
+
+.gov-check.is-bad .gov-check-band {
+  border-left-color: var(--vote-against);
+}
+
+.gov-check.is-unknown .gov-check-band,
+.gov-check.is-run .gov-check-band {
+  border-left-color: var(--muted);
+}
+
+.gov-check-mark {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  font-weight: 800;
+  color: #fff;
+  background: var(--accent);
+}
+
+.gov-check.is-bad .gov-check-mark {
+  background: var(--vote-against);
+}
+
+.gov-check.is-unknown .gov-check-mark,
+.gov-check.is-run .gov-check-mark {
+  color: var(--muted);
+  background: var(--panel);
+}
+
+.gov-check.is-run .gov-check-mark::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: acq-pulse 0.9s ease-in-out infinite;
+}
+
+.gov-check-text {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.gov-check-text h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.gov-check-text p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.gov-check-via {
+  overflow-wrap: anywhere;
+}
+
+.gov-check-more {
+  justify-self: start;
+  margin-top: 0.15rem;
+  padding: 0;
+  border: 0;
+  font: 600 0.82rem var(--ui);
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.gov-check-again {
+  font: 600 0.78rem var(--ui);
+  color: var(--accent);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.15rem 0.75rem;
+  white-space: nowrap;
+}
+
+.gov-check-again:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.gov-check-again:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.gov-check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.gov-check-item {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--accent);
+  min-width: 0;
+}
+
+.gov-check-item.is-fail {
+  border-left-color: var(--vote-against);
+}
+
+.gov-check-item.is-unverifiable,
+.gov-check-item.is-run {
+  border-left-color: var(--muted);
+}
+
+.gov-check-name {
+  font-weight: 700;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.gov-check-item ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.gov-check-item li {
+  display: grid;
+  grid-template-columns: 1.1rem minmax(0, 1fr);
+  gap: 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.gov-check-item li > span:first-child {
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.gov-check-item li.is-fail > span:first-child {
+  color: var(--vote-against);
+}
+
+.gov-check-item li.is-unverifiable > span:first-child {
+  color: var(--muted);
+}
+
+/* In an action card: whether the visitor's browser reached the same answer. */
+.ac-browser {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.ac-browser.is-bad {
+  color: var(--vote-against);
+}
+
+.ac-browser.is-unknown {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+@container (width < 520px) {
+  .gov-check-band {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .gov-check-again {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gov-check.is-run .gov-check-mark::after {
+    animation: none;
+  }
 }

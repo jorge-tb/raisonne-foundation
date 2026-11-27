@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from "react";
-import { etherscanAddress, etherscanBlock, formatTimestamp, STATE_GLYPH } from "@/lib/format";
+import { etherscanAddress, etherscanBlock, formatTimestamp } from "@/lib/format";
 import type { ProposalState } from "@/lib/proposals";
 import type { Snapshot } from "@/lib/server/snapshot";
 
@@ -47,12 +47,22 @@ export function AddressLink({ address }: { address: string }) {
   );
 }
 
+// A proposal's state in the site's status language (the Acquisitions ledger's): a filled dot when done,
+// an accent ring on its way, a grey ring when it ended without effect, a yellow pill while the vote is
+// open (a yellow ring just before). The word is always written, and the shape differs, never colour alone.
+const STATE_KIND: Record<ProposalState, "done" | "going" | "open" | "soon" | "ended"> = {
+  Pending: "soon",
+  Active: "open",
+  Succeeded: "going",
+  Queued: "going",
+  Executed: "done",
+  Defeated: "ended",
+  Canceled: "ended",
+  Expired: "ended",
+};
+
 export function StateLabel({ state }: { state: ProposalState }) {
-  return (
-    <span className={`state state-${state.toLowerCase()}`}>
-      <span aria-hidden="true">{STATE_GLYPH[state]}</span> {state}
-    </span>
-  );
+  return <span className={`state state-${STATE_KIND[state]}`}>{state}</span>;
 }
 
 // Holds the title's place while a detail page's URL-specific content streams in, so nothing jumps.

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { formatEther, isAddressEqual } from "viem";
-import { CapTable } from "@/components/CapTable";
 import { GovernanceNav } from "@/components/GovernanceNav";
 import { HolderChip } from "@/components/holders/HolderChip";
 import { ProposalTimeline } from "@/components/ProposalTimeline";
@@ -10,11 +9,11 @@ import { ActionCard, type ActionArtwork } from "@/components/ActionCard";
 import { HoldersDonut } from "@/components/holders/HoldersDonut";
 import { HoldersProvider } from "@/components/holders/HoldersProvider";
 import { holdersData } from "@/components/holders/views";
-import { AsOf, External, Hash, StateLabel } from "@/components/ui";
+import { AsOf, External, Hash, HexText, StateLabel } from "@/components/ui";
 import { FundGovernor } from "@/generated/contracts";
 import { etherscanAddress, formatTimestamp, proposalTitle } from "@/lib/format";
 import { getSnapshot, ipfsGateway, type SnapshotProposal } from "@/lib/server/snapshot";
-import { ProposalCheck } from "./ProposalCheck";
+import { GovernanceCheck } from "./GovernanceCheck";
 
 export const metadata: Metadata = { title: "Governance" };
 
@@ -45,6 +44,13 @@ export default async function GovernancePage() {
           <p className="muted small">
             Shares vote once delegated. The ring shows each shareholder&apos;s votes as a share of all shares, and the
             quorum a proposal needs.
+            {snapshot.capTable && (
+              <>
+                {" "}
+                Shares are FundShare tokens (FS), one for each ETH subscribed: {formatEther(snapshot.capTable.supply)} FS
+                in all, replayed from FundShare transfers and checked against <code>totalSupply()</code>.
+              </>
+            )}
           </p>
           <HoldersDonut />
         </section>
@@ -53,7 +59,6 @@ export default async function GovernancePage() {
       {snapshot.proposals.map((p) => (
         <ProposalCard key={p.id.toString()} proposal={p} now={snapshot.blockTimestamp} slots={slots} treasury={treasury} />
       ))}
-      <CapTable capTable={snapshot.capTable} />
     </>
   );
   return (
@@ -66,12 +71,18 @@ export default async function GovernancePage() {
         checked here rather than trusted. What makes a passed proposal the only way the fund moves:{" "}
         <Link href="/contracts">the contracts</Link>.
       </p>
-      <p className="small">
-        Each proposal is checked twice: by our server (under each action, in <em>Under the hood</em>) and again in your browser against
-        the Governor, so you don&apos;t have to trust our server for what you see. One thing your browser can&apos;t
-        check: this list comes from our server, which could leave a proposal out. It can&apos;t alter or invent one.
-      </p>
       <AsOf snapshot={snapshot} />
+      <GovernanceCheck
+        gateway={gateway}
+        proposals={snapshot.proposals.map((p) => ({
+          id: p.id.toString(),
+          title: proposalTitle(p.description),
+          targets: p.actions.map((a) => a.target),
+          values: p.actions.map((a) => a.value.toString()),
+          calldatas: p.actions.map((a) => a.calldata),
+          description: p.description,
+        }))}
+      />
       {holders ? <HoldersProvider data={holders}>{body}</HoldersProvider> : body}
     </>
   );
@@ -120,9 +131,12 @@ function ProposalCard({
 }) {
   return (
     <article className="card" id={p.id.toString()}>
-      <header>
+      {/* Title first, state on its right (as on the Acquisitions ledger); on phones the state goes under it. */}
+      <header className="proposal-head">
+        <h2>
+          <HexText text={proposalTitle(p.description)} />
+        </h2>
         <StateLabel state={p.state} />
-        <h2>{proposalTitle(p.description)}</h2>
       </header>
       <dl className="compact">
         <dt>Proposal id</dt>
@@ -159,15 +173,6 @@ function ProposalCard({
           </li>
         ))}
       </ol>
-
-      <ProposalCheck
-        id={p.id.toString()}
-        targets={p.actions.map((a) => a.target)}
-        values={p.actions.map((a) => a.value.toString())}
-        calldatas={p.actions.map((a) => a.calldata)}
-        description={p.description}
-        gateway={ipfsGateway()}
-      />
 
       <details>
         <summary>Full description</summary>

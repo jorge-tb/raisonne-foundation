@@ -42,7 +42,7 @@ export function SiteNav({ status }: { status: NavStatus }) {
           <Link key={s.href} href={s.href} className="tab" aria-current={isCurrent(pathname, s) ? "page" : undefined}>
             {s.icon}
             {s.label}
-            {s.href === "/governance" && voteOpen && <span className="vote-open">vote open</span>}
+            {s.href === "/governance" && voteOpen && <span className="vote-open">In vote</span>}
           </Link>
         ))}
       </nav>
@@ -51,7 +51,7 @@ export function SiteNav({ status }: { status: NavStatus }) {
           <Link key={s.href} href={s.href} aria-current={isCurrent(pathname, s) ? "page" : undefined}>
             {s.icon}
             <span>{s.label}</span>
-            {s.href === "/governance" && voteOpen && <span className="vote-dot" aria-label="vote open" />}
+            {s.href === "/governance" && voteOpen && <span className="vote-dot" aria-label="in vote" />}
           </Link>
         ))}
       </nav>
