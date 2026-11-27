@@ -10,7 +10,7 @@ import { ActionCard, type ActionArtwork } from "@/components/ActionCard";
 import { HoldersDonut } from "@/components/holders/HoldersDonut";
 import { HoldersProvider } from "@/components/holders/HoldersProvider";
 import { holdersData } from "@/components/holders/views";
-import { AsOf, External, Hash, StateLabel } from "@/components/ui";
+import { AsOf, External, Hash, HexText, StateLabel } from "@/components/ui";
 import { FundGovernor } from "@/generated/contracts";
 import { etherscanAddress, formatTimestamp, proposalTitle } from "@/lib/format";
 import { getSnapshot, ipfsGateway, type SnapshotProposal } from "@/lib/server/snapshot";
@@ -120,9 +120,12 @@ function ProposalCard({
 }) {
   return (
     <article className="card" id={p.id.toString()}>
-      <header>
+      {/* Title first, state on its right (as on the Acquisitions ledger); on phones the state goes under it. */}
+      <header className="proposal-head">
+        <h2>
+          <HexText text={proposalTitle(p.description)} />
+        </h2>
         <StateLabel state={p.state} />
-        <h2>{proposalTitle(p.description)}</h2>
       </header>
       <dl className="compact">
         <dt>Proposal id</dt>

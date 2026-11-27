@@ -453,17 +453,26 @@ ul.plain {
   padding: 1rem 0 1.5rem;
 }
 
-.card header h2 {
-  margin: 0.25rem 0 0.5rem;
+/* A proposal's title, with its state on the right: a long title wraps beside the state, which never moves. */
+.proposal-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0.25rem 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.proposal-head h2 {
+  margin: 0;
   /* Titles are free text: a full address in one must wrap, not run off a phone screen. */
   overflow-wrap: anywhere;
 }
 
-.state {
-  font-size: 0.875rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+@media (max-width: 480px) {
+  .proposal-head {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
 }
 
 /* A proposal's state, in the site's status language (the ledger's .ledger-status): a filled accent dot
