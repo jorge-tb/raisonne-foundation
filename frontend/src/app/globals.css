@@ -1248,8 +1248,10 @@ ol.actions.single {
   }
 }
 
+/* A proposal's full description is free text: an address or a CID in it must wrap, not widen the page. */
 .description {
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 details summary {
