@@ -30,11 +30,10 @@ export function TreeRebuild({ root }: { root: Hex }) {
   };
 
   return (
-    <section className="rebuild" aria-labelledby="rebuild-title">
-      <h2 id="rebuild-title">Rebuild the root from your own file</h2>
+    <section className="rebuild" aria-label="Rebuild the root from your own file">
       <p>
-        Use the tree file above or your own copy, and check that it gives this gallery&apos;s root. The file is read in
-        your browser: nothing is uploaded.
+        Use the tree file or your own copy, and check that it gives this acquisition&apos;s root. The file is read in your
+        browser: nothing is uploaded.
       </p>
       <label
         htmlFor="tree-file"
