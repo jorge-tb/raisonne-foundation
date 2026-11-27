@@ -1256,21 +1256,6 @@ details summary {
   cursor: pointer;
 }
 
-.browser-check {
-  border-left: 3px solid var(--foreground);
-  padding: 0.25rem 0 0.25rem 1rem;
-  margin: 1rem 0;
-}
-
-.browser-check h2,
-.browser-check h3:first-child {
-  margin-top: 0;
-}
-
-ul.checks li {
-  margin-bottom: 0.4rem;
-}
-
 button {
   font: inherit;
   padding: 0.25rem 0.75rem;
@@ -4393,4 +4378,207 @@ details.acq-more[open] > summary {
   margin: 0;
   padding: 0;
   border: 0;
+}
+
+/* ---- Governance: the browser check, once for the page (app/governance/GovernanceCheck.tsx) ----
+   The outcome, the RPC and Re-check said once; each proposal's lines in Details, which open by themselves
+   when something doesn't match. Red only for a contradiction; grey for "unable to verify". */
+.gov-check {
+  container-type: inline-size;
+  display: grid;
+  gap: 0.6rem;
+  margin: 1rem 0 1.5rem;
+}
+
+.gov-check-band {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.5rem 1rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--accent);
+}
+
+.gov-check.is-bad .gov-check-band {
+  border-left-color: var(--vote-against);
+}
+
+.gov-check.is-unknown .gov-check-band,
+.gov-check.is-run .gov-check-band {
+  border-left-color: var(--muted);
+}
+
+.gov-check-mark {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  font-weight: 800;
+  color: #fff;
+  background: var(--accent);
+}
+
+.gov-check.is-bad .gov-check-mark {
+  background: var(--vote-against);
+}
+
+.gov-check.is-unknown .gov-check-mark,
+.gov-check.is-run .gov-check-mark {
+  color: var(--muted);
+  background: var(--panel);
+}
+
+.gov-check.is-run .gov-check-mark::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: acq-pulse 0.9s ease-in-out infinite;
+}
+
+.gov-check-text {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.gov-check-text h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.gov-check-text p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.gov-check-via {
+  overflow-wrap: anywhere;
+}
+
+.gov-check-more {
+  justify-self: start;
+  margin-top: 0.15rem;
+  padding: 0;
+  border: 0;
+  font: 600 0.82rem var(--ui);
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.gov-check-again {
+  font: 600 0.78rem var(--ui);
+  color: var(--accent);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.15rem 0.75rem;
+  white-space: nowrap;
+}
+
+.gov-check-again:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.gov-check-again:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.gov-check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.gov-check-item {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--accent);
+  min-width: 0;
+}
+
+.gov-check-item.is-fail {
+  border-left-color: var(--vote-against);
+}
+
+.gov-check-item.is-unverifiable,
+.gov-check-item.is-run {
+  border-left-color: var(--muted);
+}
+
+.gov-check-name {
+  font-weight: 700;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.gov-check-item ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.gov-check-item li {
+  display: grid;
+  grid-template-columns: 1.1rem minmax(0, 1fr);
+  gap: 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.gov-check-item li > span:first-child {
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.gov-check-item li.is-fail > span:first-child {
+  color: var(--vote-against);
+}
+
+.gov-check-item li.is-unverifiable > span:first-child {
+  color: var(--muted);
+}
+
+/* In an action card: whether the visitor's browser reached the same answer. */
+.ac-browser {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.ac-browser.is-bad {
+  color: var(--vote-against);
+}
+
+.ac-browser.is-unknown {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+@container (width < 520px) {
+  .gov-check-band {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .gov-check-again {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gov-check.is-run .gov-check-mark::after {
+    animation: none;
+  }
 }

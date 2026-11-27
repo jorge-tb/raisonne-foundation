@@ -14,7 +14,7 @@ import { AsOf, External, Hash, HexText, StateLabel } from "@/components/ui";
 import { FundGovernor } from "@/generated/contracts";
 import { etherscanAddress, formatTimestamp, proposalTitle } from "@/lib/format";
 import { getSnapshot, ipfsGateway, type SnapshotProposal } from "@/lib/server/snapshot";
-import { ProposalCheck } from "./ProposalCheck";
+import { GovernanceCheck } from "./GovernanceCheck";
 
 export const metadata: Metadata = { title: "Governance" };
 
@@ -66,12 +66,18 @@ export default async function GovernancePage() {
         checked here rather than trusted. What makes a passed proposal the only way the fund moves:{" "}
         <Link href="/contracts">the contracts</Link>.
       </p>
-      <p className="small">
-        Each proposal is checked twice: by our server (under each action, in <em>Under the hood</em>) and again in your browser against
-        the Governor, so you don&apos;t have to trust our server for what you see. One thing your browser can&apos;t
-        check: this list comes from our server, which could leave a proposal out. It can&apos;t alter or invent one.
-      </p>
       <AsOf snapshot={snapshot} />
+      <GovernanceCheck
+        gateway={gateway}
+        proposals={snapshot.proposals.map((p) => ({
+          id: p.id.toString(),
+          title: proposalTitle(p.description),
+          targets: p.actions.map((a) => a.target),
+          values: p.actions.map((a) => a.value.toString()),
+          calldatas: p.actions.map((a) => a.calldata),
+          description: p.description,
+        }))}
+      />
       {holders ? <HoldersProvider data={holders}>{body}</HoldersProvider> : body}
     </>
   );
@@ -162,15 +168,6 @@ function ProposalCard({
           </li>
         ))}
       </ol>
-
-      <ProposalCheck
-        id={p.id.toString()}
-        targets={p.actions.map((a) => a.target)}
-        values={p.actions.map((a) => a.value.toString())}
-        calldatas={p.actions.map((a) => a.calldata)}
-        description={p.description}
-        gateway={ipfsGateway()}
-      />
 
       <details>
         <summary>Full description</summary>
