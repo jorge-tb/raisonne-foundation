@@ -31,6 +31,9 @@ npm run verify
 Lists every proposal with its live state, verifies each `addGallery` root against the
 tree published on IPFS, and prints the current cap table in basis points.
 
+It runs on your machine with your own RPC and keys from `.env.local` (see Setup), so checking a
+root doesn't depend on the website. The acquisition pages link here as "the project's open-source script".
+
 - **Logs**: Alchemy's free tier caps `eth_getLogs` at 10 blocks, so Etherscan V2 is used
   to discover *which blocks* hold project logs; the logs themselves are read from the RPC.
   Without `ETHERSCAN_API_KEY` the script range-scans (`LOGS_MAX_RANGE`, `LOGS_CONCURRENCY`).

@@ -4195,43 +4195,90 @@ details.acq-more[open] > summary {
   margin-bottom: 0.5rem;
 }
 
-/* Provenance and the record, side by side when there is room. */
-.acq-below {
+/* The on-chain record: the decision and the transaction as two lines, then one card per identifier
+   saying what it is and what to do with it (copy, open). */
+.acq-ids {
   container-type: inline-size;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1.5rem 2.5rem;
-  align-items: start;
+  gap: 0.9rem;
+  margin: 0 0 2.5rem;
 }
 
-.acq-below > * {
+.acq-ids > * {
   min-width: 0;
 }
 
-.acq-decided {
+.acq-lines {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.45rem;
+  margin: 0;
 }
 
-.acq-record {
+.acq-lines > div {
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 0.5rem 1rem;
-  margin: 0 0 0.75rem;
-  font-size: 0.9rem;
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.2rem 1rem;
+  font-size: 0.92rem;
 }
 
-.acq-record dt {
-  align-self: start;
-  padding-top: 0.1rem;
-  font-size: 0.78rem;
-  font-weight: 700;
+.acq-lines dt {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--muted);
 }
 
-.acq-record dd {
+.acq-lines dd {
   min-width: 0;
   margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.acq-idcards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 0.8rem;
+}
+
+.acq-idcard {
+  display: grid;
+  align-content: start;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.8rem 0.9rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent);
+}
+
+.acq-idcard-name {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.acq-idcard .hash {
+  font-size: 0.82rem;
+}
+
+.acq-idcard-what {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.acq-idcard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.8rem;
+  font-size: 0.85rem;
 }
 
 .acq-unverifiable {
@@ -4254,20 +4301,10 @@ details.acq-more[open] > summary {
   }
 }
 
-@media (max-width: 760px) {
-  .acq-below {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 480px) {
-  .acq-record {
+@container (width < 480px) {
+  .acq-lines > div {
     grid-template-columns: minmax(0, 1fr);
     gap: 0.1rem;
-  }
-
-  .acq-record dd {
-    margin-bottom: 0.45rem;
   }
 }
 
@@ -4280,4 +4317,26 @@ details.acq-more[open] > summary {
   .acq-check.is-run .acq-check-mark::after {
     animation: none;
   }
+}
+
+/* "Check it yourself": two ways, easiest first. */
+.acq-yourself {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 46rem;
+}
+
+.acq-yourself h3 {
+  margin: 0.6rem 0 0;
+  font-size: 0.95rem;
+}
+
+.acq-yourself p {
+  margin: 0;
+}
+
+.acq-yourself .rebuild {
+  margin: 0;
+  padding: 0;
+  border: 0;
 }

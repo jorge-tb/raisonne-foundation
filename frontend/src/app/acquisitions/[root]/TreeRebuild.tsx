@@ -31,10 +31,7 @@ export function TreeRebuild({ root }: { root: Hex }) {
 
   return (
     <section className="rebuild" aria-label="Rebuild the root from your own file">
-      <p>
-        Use the tree file or your own copy, and check that it gives this acquisition&apos;s root. The file is read in your
-        browser: nothing is uploaded.
-      </p>
+      <p>Your browser rebuilds the root from it and compares it with this acquisition&apos;s. Nothing is uploaded.</p>
       <label
         htmlFor="tree-file"
         className={dragging ? "dropzone dragging" : "dropzone"}
