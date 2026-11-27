@@ -43,10 +43,10 @@ export function HolderCard({ holder: h, anchor, onClose }: { holder: HolderView;
       <dl className="compact">
         <dt>Shares</dt>
         <dd>
-          {h.shares} ETH · {h.sharePct}
+          {h.shares} FS · {h.sharePct}
         </dd>
         <dt>Votes</dt>
-        <dd>{h.votes} ETH</dd>
+        <dd>{h.votes} FS</dd>
         <dt>Delegates to</dt>
         <dd>{delegation.startsWith("0x") ? <code className="hash">{delegation}</code> : delegation}</dd>
         <dt>Proposals</dt>

@@ -169,7 +169,8 @@ export function HoldersDonut() {
             <Blockie address={h.address} slot={h.slot} size={28} />
             <span className="ring-row-who">
               <code className="hash">{h.address}</code>
-              <span className="muted small">{h.votesFraction > 0 ? `votes ${h.votes} ETH` : "not delegated: no votes"}</span>
+              {/* Voting power as a share of all shares (on the right); the amount is in the holder's card, in FS. */}
+              <span className="muted small">{h.votesFraction > 0 ? "Can vote" : "Not delegated: no votes"}</span>
             </span>
             <span className="ring-row-pct">{pct(h.votesFraction)}</span>
           </button>
