@@ -49,9 +49,9 @@ function tense(state: ProposalState) {
     case "Queued":
       return { i: 1, mode: "live", note: "once executed" } as const;
     case "Executed":
-      return { i: 2, mode: "done", note: "executed" } as const;
+      return { i: 2, mode: "done", note: null } as const;
     default:
-      return { i: 3, mode: "off", note: `the proposal was ${state.toLowerCase()}` } as const;
+      return { i: 3, mode: "off", note: null } as const;
   }
 }
 
@@ -68,7 +68,7 @@ export function ActionCard({ action: a, ctx, uid }: { action: Action; ctx: Actio
     <article className={`ac ac-${t.mode} ac-cat-${m.category}`}>
       <header className="ac-top">
         <span className={`ac-cat ${m.category}`}>{CATEGORY_LABEL[m.category]}</span>
-        <span className="ac-when">{t.note}</span>
+        {t.note && <span className="ac-when">{t.note}</span>}
       </header>
 
       <p className="ac-sentence">{m.sentence(verb)}</p>

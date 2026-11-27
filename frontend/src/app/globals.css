@@ -163,12 +163,16 @@ main {
   border-bottom-color: var(--accent);
 }
 
+/* An open vote, as on the ledger: the yellow pill. */
 .vote-open {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 0 0.35rem;
-  background: var(--accent);
-  color: var(--surface);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: var(--on-yellow);
 }
 
 /* The environment strip above the header: network and read-only. Neutral, so the yellow stays the brand's. */
@@ -285,7 +289,8 @@ main {
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 50%;
-    background: var(--foreground);
+    background: var(--yellow);
+    box-shadow: 0 0 0 1.5px var(--on-yellow);
   }
 
   /* Room for the bar, so the footer isn't hidden under it. */
@@ -461,21 +466,61 @@ ul.plain {
   text-transform: uppercase;
 }
 
-/* Typographic weight, not colour: final outcomes heavier, open states lighter. */
-.state-pending,
-.state-succeeded,
-.state-queued {
-  font-weight: 500;
+/* A proposal's state, in the site's status language (the ledger's .ledger-status): a filled accent dot
+   when done, an accent ring on its way, a grey ring when it ended without effect, a yellow pill while the
+   vote is open and a yellow ring just before. */
+.state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
-.state-active {
-  text-decoration: underline;
+.state::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
-.state-defeated,
-.state-canceled,
-.state-expired {
+.state-done,
+.state-going {
+  color: var(--accent);
+}
+
+.state-going::before,
+.state-ended::before,
+.state-soon::before {
+  width: 5px;
+  height: 5px;
+  background: transparent;
+  border: 1.5px solid currentColor;
+}
+
+.state-ended {
   color: var(--muted);
+}
+
+.state-soon {
+  color: var(--foreground);
+}
+
+.state-soon::before {
+  border-color: var(--yellow);
+}
+
+.state-open {
+  padding: 0.08rem 0.55rem 0.08rem 0.45rem;
+  border-radius: 999px;
+  color: var(--on-yellow);
+  background: var(--yellow);
 }
 
 .verdict-mismatch,

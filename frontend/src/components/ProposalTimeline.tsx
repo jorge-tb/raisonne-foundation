@@ -7,7 +7,6 @@ type Step = { label: string; when: string; status: "done" | "now" | "next" | "fa
 // and executed, with times and transactions. A defeated or canceled proposal stops where it ended.
 export function ProposalTimeline({ proposal: p, now }: { proposal: SnapshotProposal; now: bigint }) {
   const { votes: v, state } = p;
-  const turnout = v.tally.for + v.tally.against + v.tally.abstain;
   const ended = ["Defeated", "Canceled"].includes(state);
   const minutesTo = (t: bigint) => Math.max(1, Math.ceil(Number(t - now) / 60));
 
@@ -21,7 +20,7 @@ export function ProposalTimeline({ proposal: p, now }: { proposal: SnapshotPropo
     ended
       ? {
           label: state,
-          when: state === "Canceled" ? "by the proposer" : v.quorum !== null && turnout < v.quorum ? "no quorum" : "more Against than For",
+          when: state === "Canceled" ? "by the proposer" : formatTime(p.voteEnd),
           status: "fail",
         }
       : p.queued && v.times.queued

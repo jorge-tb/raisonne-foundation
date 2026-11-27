@@ -1,5 +1,3 @@
-import type { ProposalState } from "./states";
-
 export const ETHERSCAN = "https://sepolia.etherscan.io";
 export const etherscanAddress = (address: string) => `${ETHERSCAN}/address/${address}`;
 // The Contract tab: the verified source (every project contract is verified on Etherscan).
@@ -8,18 +6,6 @@ export const etherscanTx = (hash: string) => `${ETHERSCAN}/tx/${hash}`;
 // The transaction's Logs tab: the decoded events, e.g. GalleryAdded with its root.
 export const etherscanTxLogs = (hash: string) => `${etherscanTx(hash)}#eventlog`;
 export const etherscanBlock = (block: bigint) => `${ETHERSCAN}/block/${block}`;
-
-// Monochrome: state is carried by the word and a glyph, never by colour alone.
-export const STATE_GLYPH: Record<ProposalState, string> = {
-  Pending: "○",
-  Active: "●",
-  Canceled: "⊘",
-  Defeated: "✕",
-  Succeeded: "✓",
-  Queued: "◷",
-  Expired: "–",
-  Executed: "■",
-};
 
 // Governor uses the ERC-6372 timestamp clock: voteStart / voteEnd are unix seconds, not blocks.
 // Rendered on the server in UTC so the output doesn't depend on the viewer's clock.
